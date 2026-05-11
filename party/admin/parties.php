@@ -58,8 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'An account with that email already exists.';
             } else {
                 $user_id = mpd_create_user($email, 'organizer');
-                $user    = mpd_get_user_by_id($user_id);
-                $token   = $user['first_login_token'];
+                $token   = mpd_set_user_token($user_id);
                 $link    = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($token);
 
                 $subject = 'Your MyPictureDesk organizer account';
