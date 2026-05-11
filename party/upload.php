@@ -138,18 +138,15 @@ db_log_upload_attempt($party_id, $ip_hash);
 // ── Optional email notification ─────────────────────────────
 $notify = $party['notify_email'] ?? '';
 if ($notify !== '') {
-    $pname   = htmlspecialchars($party['party_name'], ENT_QUOTES);
-    $subject = "[$pname] New photo awaiting approval";
-    $body    = "<p>A new photo has been uploaded and is waiting for your approval.</p>"
-             . "<ul>"
-             . "<li><strong>Party:</strong> $pname</li>"
-             . "<li><strong>UUID:</strong> $uuid</li>"
-             . "<li><strong>Type:</strong> $detected_ext</li>"
-             . "<li><strong>Name:</strong> " . htmlspecialchars($uploaded_by ?: '(anonymous)', ENT_QUOTES) . "</li>"
-             . "<li><strong>IP (partial):</strong> $ip_disp</li>"
-             . "<li><strong>Time:</strong> " . date('Y-m-d H:i:s') . " UTC</li>"
-             . "</ul>"
-             . "<p><a href='" . BASE_URL . "/party/admin/index.php'>Review in admin panel</a></p>";
+    $pname   = $party['party_name'];
+    $subject = '[' . $pname . '] New photo awaiting approval';
+    $body    = mpd_render_email('email_notify_body', [
+        'party_name'  => htmlspecialchars($pname),
+        'uploaded_by' => htmlspecialchars($uploaded_by ?: '(anonymous)'),
+        'ip_display'  => $ip_disp,
+        'upload_time' => date('Y-m-d H:i:s'),
+        'admin_url'   => BASE_URL . '/party/admin/index.php',
+    ]);
     mpd_send_email($notify, $subject, $body);
 }
 

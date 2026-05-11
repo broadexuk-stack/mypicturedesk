@@ -441,3 +441,39 @@ function mpd_send_email(string $to, string $subject, string $body_html): bool {
 
     return false;
 }
+
+// ── J. Email templates ───────────────────────────────────────
+
+function mpd_default_email(string $key): string {
+    return match ($key) {
+        'email_welcome_body' =>
+            "<p>Hi,</p>\n"
+          . "<p>Your party gallery has been set up on MyPictureDesk.</p>\n"
+          . "<ul>\n"
+          . "<li><strong>Party name:</strong> {{party_name}}</li>\n"
+          . "<li><strong>Guest URL:</strong> <a href=\"{{guest_url}}\">{{guest_url}}</a></li>\n"
+          . "<li><strong>Admin panel:</strong> <a href=\"{{admin_url}}\">Log in to moderate photos</a></li>\n"
+          . "</ul>\n"
+          . "{{setpassword_block}}",
+        'email_notify_body' =>
+            "<p>A new photo has been uploaded to <strong>{{party_name}}</strong> and is awaiting approval.</p>\n"
+          . "<ul>\n"
+          . "<li><strong>Name:</strong> {{uploaded_by}}</li>\n"
+          . "<li><strong>IP (partial):</strong> {{ip_display}}</li>\n"
+          . "<li><strong>Time:</strong> {{upload_time}} UTC</li>\n"
+          . "</ul>\n"
+          . "<p><a href=\"{{admin_url}}\">Review in admin panel</a></p>",
+        default => '',
+    };
+}
+
+function mpd_render_email(string $key, array $vars): string {
+    $tpl = mpd_get_setting($key);
+    if ($tpl === null || trim($tpl) === '') {
+        $tpl = mpd_default_email($key);
+    }
+    foreach ($vars as $k => $v) {
+        $tpl = str_replace('{{' . $k . '}}', (string)$v, $tpl);
+    }
+    return $tpl;
+}

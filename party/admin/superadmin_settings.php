@@ -40,6 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $action = $_POST['action'] ?? '';
 
+        if ($action === 'save_templates') {
+            mpd_update_setting('email_welcome_body', trim($_POST['email_welcome_body'] ?? '') ?: null);
+            mpd_update_setting('email_notify_body',  trim($_POST['email_notify_body']  ?? '') ?: null);
+            $success = 'Email templates saved.';
+        }
+
         if ($action === 'save_smtp') {
             $keys = ['smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from','smtp_from_name','smtp_secure'];
             foreach ($keys as $k) {
@@ -98,7 +104,9 @@ $s = mpd_get_all_settings();
       width: 100%; padding: 10px 14px; border-radius: 8px; border: 2px solid #4b35a0;
       background: #160f35; color: #f0ebff; font-size: 0.9rem; font-family: inherit;
     }
-    input:focus, select:focus { outline: none; border-color: #f5a623; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #f5a623; }
+    textarea { width: 100%; padding: 10px 14px; border-radius: 8px; border: 2px solid #4b35a0; background: #160f35; color: #f0ebff; font-size: 0.85rem; font-family: monospace; resize: vertical; }
+    code { background: #160f35; color: #9c7fff; font-size: 0.78rem; padding: 1px 5px; border-radius: 4px; }
     .hint { font-size: 0.74rem; color: #6b5ca5; margin-top: 4px; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .btn { padding: 10px 24px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: inherit; }
@@ -197,6 +205,41 @@ $s = mpd_get_all_settings();
     </div>
 
     <button type="submit" class="btn btn-primary">Save SMTP Settings</button>
+  </form>
+
+  <hr>
+
+  <hr>
+
+  <!-- ── Email templates ── -->
+  <h2>Email Templates</h2>
+  <p style="font-size:.82rem;color:#6b5ca5;margin-bottom:20px;">
+    HTML is supported. Leave blank to restore the default. Placeholders are replaced when emails are sent.
+  </p>
+
+  <form method="post" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+    <input type="hidden" name="action" value="save_templates">
+
+    <div class="form-row">
+      <label for="email_welcome_body">Welcome Email <span style="font-weight:400;color:#6b5ca5;">(sent to organizer when their party is created)</span></label>
+      <p style="font-size:.74rem;color:#6b5ca5;margin:4px 0 8px;">
+        Placeholders: <code>{{party_name}}</code> &nbsp; <code>{{guest_url}}</code> &nbsp; <code>{{admin_url}}</code> &nbsp; <code>{{setpassword_block}}</code>
+      </p>
+      <textarea id="email_welcome_body" name="email_welcome_body" rows="10"
+                placeholder="Leave blank to use the default template"><?= htmlspecialchars($s['email_welcome_body'] ?? '') ?></textarea>
+    </div>
+
+    <div class="form-row" style="margin-top:20px;">
+      <label for="email_notify_body">Upload Notification Email <span style="font-weight:400;color:#6b5ca5;">(sent when a guest uploads a photo)</span></label>
+      <p style="font-size:.74rem;color:#6b5ca5;margin:4px 0 8px;">
+        Placeholders: <code>{{party_name}}</code> &nbsp; <code>{{uploaded_by}}</code> &nbsp; <code>{{ip_display}}</code> &nbsp; <code>{{upload_time}}</code> &nbsp; <code>{{admin_url}}</code>
+      </p>
+      <textarea id="email_notify_body" name="email_notify_body" rows="10"
+                placeholder="Leave blank to use the default template"><?= htmlspecialchars($s['email_notify_body'] ?? '') ?></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save Templates</button>
   </form>
 
   <hr>

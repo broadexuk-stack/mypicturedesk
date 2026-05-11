@@ -58,22 +58,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existing = mpd_get_user_by_email($email);
                 if ($existing !== false && !empty($existing['password_hash'])) {
                     $error = 'An active account with that email already exists.';
+                } elseif ($existing !== false) {
+                    // Resend: account exists but no password set yet — send fresh token link
+                    $token = mpd_set_user_token((int)$existing['id']);
+                    $link  = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($token);
+                    $body  = "<p>Hi,</p>"
+                           . "<p>Here is a fresh invitation link for your MyPictureDesk organizer account.</p>"
+                           . "<p><a href='$link'>Click here to set your password</a> (valid for 48 hours).</p>"
+                           . "<p>If you did not expect this email, please ignore it.</p>";
+                    mpd_send_email($email, 'Your MyPictureDesk invitation', $body);
+                    $success = "Invitation resent to $email.";
                 } else {
-                    // Create new account, or resend invitation to an unactivated one
-                    $user_id = $existing !== false
-                        ? (int)$existing['id']
-                        : mpd_create_user($email, 'organizer');
-                    $token   = mpd_set_user_token($user_id);
-                    $link    = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($token);
-
-                    $subject = 'Your MyPictureDesk organizer account';
-                    $body    = "<p>Hi,</p>"
-                             . "<p>An organizer account has been created for you on MyPictureDesk.</p>"
-                             . "<p>Click the link below to set your password (valid for 48 hours):</p>"
-                             . "<p><a href='$link'>$link</a></p>"
-                             . "<p>If you did not expect this email, please ignore it.</p>";
-                    mpd_send_email($email, $subject, $body);
-                    $success = "Invitation sent to $email.";
+                    // New account — no email yet; welcome email goes out when a party is assigned
+                    mpd_create_user($email, 'organizer');
+                    $success = "Organizer account created for $email. Their welcome email will be sent when you create a party for them.";
                 }
             }
         }
@@ -109,17 +107,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $org = mpd_get_user_by_id($org_id);
                 if ($org) {
                     $guest_url = BASE_URL . '/party?id=' . urlencode($slug);
-                    $subject   = "Your party gallery is ready: $name";
-                    $body      = "<p>Your party gallery has been created.</p>"
-                               . "<ul><li><strong>Party name:</strong> $name</li>"
-                               . "<li><strong>Guest URL:</strong> <a href='$guest_url'>$guest_url</a></li>"
-                               . "<li><strong>Admin panel:</strong> <a href='" . BASE_URL . "/party/admin/index.php'>Log in to moderate photos</a></li></ul>";
+                    $admin_url = BASE_URL . '/party/admin/index.php';
+
+                    $setpassword_block = '';
                     if (empty($org['password_hash'])) {
                         $inv_token = mpd_set_user_token($org_id);
                         $inv_link  = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($inv_token);
-                        $body .= "<p>You haven't set a password yet — <a href='$inv_link'>click here to set your password</a> (link valid for 48 hours).</p>";
+                        $setpassword_block = "<p>To access the admin panel you'll need to set your password first &mdash; "
+                                           . "<a href=\"$inv_link\">click here to set your password</a> (link valid for 48 hours).</p>";
                     }
-                    mpd_send_email($org['email'], $subject, $body);
+
+                    $body = mpd_render_email('email_welcome_body', [
+                        'party_name'        => htmlspecialchars($name),
+                        'guest_url'         => $guest_url,
+                        'admin_url'         => $admin_url,
+                        'setpassword_block' => $setpassword_block,
+                    ]);
+                    mpd_send_email($org['email'], "Your party gallery is ready: $name", $body);
                 }
                 $success = "Party '$name' created with slug '$slug'. Directories provisioned.";
             }
