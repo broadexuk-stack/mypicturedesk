@@ -280,8 +280,8 @@ function full_url(array $p): string {
     .lb-figure { display: flex; flex-direction: column; align-items: center; max-width: min(92vw, 960px); gap: 14px; }
     .lb-img { max-width: 100%; max-height: 72vh; object-fit: contain; border-radius: 10px; display: block; }
     .lb-meta { background: rgba(255,255,255,0.07); border-radius: 10px; padding: 12px 18px; width: 100%; display: flex; flex-wrap: wrap; gap: 4px 28px; }
-    .lb-meta-row { display: flex; gap: 8px; font-size: 0.85rem; color: #c9b8ff; align-items: center; }
-    .lb-label { color: #f5a623; font-weight: 700; min-width: 70px; }
+    .lb-meta-row { display: flex; gap: 4px; font-size: 0.85rem; color: #c9b8ff; align-items: center; }
+    .lb-label { color: #f5a623; font-weight: 700; }
     .lb-close { position: fixed; top: 14px; right: 18px; background: rgba(255,255,255,0.12); border: none; color: #fff; font-size: 1.6rem; line-height: 1; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .lb-close:hover { background: rgba(255,255,255,0.25); }
     .lb-nav { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.1); border: none; color: #fff; font-size: 2.4rem; line-height: 1; width: 50px; height: 70px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
@@ -368,6 +368,7 @@ function full_url(array $p): string {
            data-timestamp="<?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?>"
            data-ip="<?= htmlspecialchars($p['ip_display']) ?>"
            data-name="<?= htmlspecialchars($p['uploaded_by'] ?? '') ?>"
+           data-filetype="<?= htmlspecialchars(strtoupper($p['original_extension'])) ?>"
            data-section-label="Awaiting Approval">
         <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
              alt="Pending photo"
@@ -416,6 +417,7 @@ function full_url(array $p): string {
            data-timestamp="<?= htmlspecialchars(date('d M Y H:i', strtotime($p['approved_at'] ?? $p['upload_timestamp']))) ?>"
            data-ip="<?= htmlspecialchars($p['ip_display']) ?>"
            data-name="<?= htmlspecialchars($p['uploaded_by'] ?? '') ?>"
+           data-filetype="<?= htmlspecialchars(strtoupper(output_extension($p['original_extension']))) ?>"
            data-section-label="In the Gallery">
         <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
              alt="Approved photo"
@@ -462,6 +464,7 @@ function full_url(array $p): string {
          data-timestamp="<?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?>"
          data-ip="<?= htmlspecialchars($p['ip_display']) ?>"
          data-name="<?= htmlspecialchars($p['uploaded_by'] ?? '') ?>"
+         data-filetype="<?= htmlspecialchars(strtoupper($p['original_extension'])) ?>"
          data-section-label="Wastebasket">
       <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
            alt="Wastebasket photo"
@@ -494,10 +497,12 @@ function full_url(array $p): string {
   <figure class="lb-figure">
     <img id="lb-img" src="" alt="Full size photo" class="lb-img">
     <figcaption class="lb-meta">
-      <div class="lb-meta-row" id="lb-name-row"><span class="lb-label">Name</span><span id="lb-name"></span></div>
-      <div class="lb-meta-row"><span class="lb-label">Uploaded</span><span id="lb-time"></span></div>
-      <div class="lb-meta-row"><span class="lb-label">IP</span><span id="lb-ip"></span></div>
-      <div class="lb-meta-row"><span class="lb-label">Section</span><span id="lb-section"></span></div>
+      <div class="lb-meta-row" id="lb-name-row"><span class="lb-label">Name:</span><span id="lb-name"></span></div>
+      <div class="lb-meta-row"><span class="lb-label">Uploaded:</span><span id="lb-time"></span></div>
+      <div class="lb-meta-row"><span class="lb-label">IP:</span><span id="lb-ip"></span></div>
+      <div class="lb-meta-row"><span class="lb-label">Section:</span><span id="lb-section"></span></div>
+      <div class="lb-meta-row"><span class="lb-label">Type:</span><span id="lb-type"></span></div>
+      <div class="lb-meta-row"><span class="lb-label">Resolution:</span><span id="lb-res">—</span></div>
     </figcaption>
   </figure>
   <div class="lb-counter" id="lb-counter"></div>
@@ -586,6 +591,8 @@ function full_url(array $p): string {
     div.dataset.ip           = p.ip_display;
     div.dataset.name         = p.uploaded_by || '';
     div.dataset.sectionLabel = sectionLabels[section] || section;
+    const rawExt = (p.original_extension || '').toLowerCase();
+    div.dataset.filetype     = (rawExt === 'heic' && section === 'approved' ? 'JPG' : rawExt.toUpperCase());
 
     let actions = '';
     const dlLink = `<a class="btn-dl-photo" href="${escHtml(fullUrl(p))}" download="${escHtml(dlFilename(p))}" aria-label="Download">⬇</a>`;
@@ -778,6 +785,14 @@ function full_url(array $p): string {
   const lbCounter = document.getElementById('lb-counter');
   const lbName    = document.getElementById('lb-name');
   const lbNameRow = document.getElementById('lb-name-row');
+  const lbType    = document.getElementById('lb-type');
+  const lbRes     = document.getElementById('lb-res');
+
+  lbImg.addEventListener('load', () => {
+    if (lbImg.naturalWidth && lbImg.naturalHeight) {
+      lbRes.textContent = lbImg.naturalWidth + ' × ' + lbImg.naturalHeight;
+    }
+  });
 
   let lbCards = [];
   let lbIdx   = 0;
@@ -789,10 +804,12 @@ function full_url(array $p): string {
   function lbRefresh() {
     const card = lbCards[lbIdx];
     if (!card) return;
+    lbRes.textContent      = '—';
     lbImg.src              = card.dataset.fullUrl || '';
     lbTime.textContent     = card.dataset.timestamp || '';
     lbIp.textContent       = card.dataset.ip || '';
     lbSection.textContent  = card.dataset.sectionLabel || '';
+    lbType.textContent     = card.dataset.filetype || '—';
     const name = card.dataset.name || '';
     if (lbName)    lbName.textContent = name;
     if (lbNameRow) lbNameRow.hidden   = !name;
