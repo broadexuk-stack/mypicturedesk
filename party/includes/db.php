@@ -342,6 +342,13 @@ function mpd_toggle_party_active(int $id, bool $active): void {
     $st->execute([':active' => (int)$active, ':id' => $id]);
 }
 
+function mpd_delete_party(int $id): void {
+    $pdo = db_pdo();
+    $pdo->prepare('DELETE FROM photos          WHERE party_id = :id')->execute([':id' => $id]);
+    $pdo->prepare('DELETE FROM upload_attempts WHERE party_id = :id')->execute([':id' => $id]);
+    $pdo->prepare('DELETE FROM mpd_parties     WHERE id       = :id')->execute([':id' => $id]);
+}
+
 // ── G. mpd_settings management ───────────────────────────────
 
 function mpd_get_setting(string $key): ?string {

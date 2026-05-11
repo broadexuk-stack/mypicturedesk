@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // ============================================================
-// admin/parties.php — Super admin: manage parties and organizer accounts.
+// admin/parties.php — Super admin: manage parties and organiser accounts.
 // ============================================================
 
 require_once dirname(__DIR__) . '/config.php';
@@ -18,7 +18,6 @@ if (empty($_SESSION['mpd_user_id']) || ($_SESSION['mpd_role'] ?? '') !== 'supera
     exit;
 }
 
-// Session timeout
 $lifetime_sec = SESSION_LIFETIME_MINUTES * 60;
 if (isset($_SESSION['admin_last_active']) && time() - $_SESSION['admin_last_active'] > $lifetime_sec) {
     session_unset(); session_destroy();
@@ -38,8 +37,9 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$n
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 
-$success = '';
-$error   = '';
+$success          = '';
+$error            = '';
+$party_modal_open = false;
 
 // ── Handle POST actions ──────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -49,83 +49,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $action = $_POST['action'] ?? '';
 
-        // ─ Create organizer account ─
-        if ($action === 'create_organizer') {
-            $email = trim($_POST['organizer_email'] ?? '');
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $error = 'Please enter a valid email address.';
-            } else {
-                $existing = mpd_get_user_by_email($email);
-                if ($existing !== false && !empty($existing['password_hash'])) {
-                    $error = 'An active account with that email already exists.';
-                } elseif ($existing !== false) {
-                    // Resend: account exists but no password set yet — send fresh token link
-                    $token = mpd_set_user_token((int)$existing['id']);
-                    $link  = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($token);
-                    $body  = "<p>Hi,</p>"
-                           . "<p>Here is a fresh invitation link for your MyPictureDesk organizer account.</p>"
-                           . "<p><a href='$link'>Click here to set your password</a> (valid for 48 hours).</p>"
-                           . "<p>If you did not expect this email, please ignore it.</p>";
-                    mpd_send_email($email, 'Your MyPictureDesk invitation', $body);
-                    $success = "Invitation resent to $email.";
-                } else {
-                    // New account — no email yet; welcome email goes out when a party is assigned
-                    mpd_create_user($email, 'organizer');
-                    $success = "Organizer account created for $email. Their welcome email will be sent when you create a party for them.";
-                }
-            }
-        }
-
         // ─ Create party ─
         if ($action === 'create_party') {
-            $slug       = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['slug'] ?? '')));
-            $name       = trim($_POST['party_name'] ?? '');
-            $org_id     = (int)($_POST['organizer_id'] ?? 0);
-            $edt        = trim($_POST['event_datetime'] ?? '');
-            $info       = trim($_POST['party_info'] ?? '');
-            $notify     = trim($_POST['notify_email'] ?? '');
-            $me         = (int)$_SESSION['mpd_user_id'];
+            $slug        = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['slug'] ?? '')));
+            $name        = trim($_POST['party_name'] ?? '');
+            $org_id_raw  = trim($_POST['organiser_id'] ?? '');
+            $new_email   = trim($_POST['new_organiser_email'] ?? '');
+            $edt         = trim($_POST['event_datetime'] ?? '');
+            $info        = trim($_POST['party_info'] ?? '');
+            $notify      = trim($_POST['notify_email'] ?? '');
+            $me          = (int)$_SESSION['mpd_user_id'];
+            $org_id      = 0;
 
-            if ($slug === '' || strlen($slug) < 3) {
-                $error = 'Party URL slug must be at least 3 characters (lowercase letters, numbers, hyphens only).';
-            } elseif ($name === '') {
-                $error = 'Party name is required.';
-            } elseif ($org_id === 0) {
-                $error = 'Please select an organizer.';
-            } elseif (mpd_get_party_by_slug($slug) !== false) {
-                $error = "The slug '$slug' is already taken. Please choose another.";
-            } else {
-                $party_id = mpd_create_party(
-                    $slug, $name, $org_id, $me,
-                    $edt !== '' ? $edt : null,
-                    $info !== '' ? $info : null,
-                    $notify !== '' ? $notify : null
-                );
-                mpd_ensure_party_dirs($slug);
-
-                // Send notification to organizer
-                $org = mpd_get_user_by_id($org_id);
-                if ($org) {
-                    $guest_url = BASE_URL . '/party?id=' . urlencode($slug);
-                    $admin_url = BASE_URL . '/party/admin/index.php';
-
-                    $setpassword_block = '';
-                    if (empty($org['password_hash'])) {
-                        $inv_token = mpd_set_user_token($org_id);
-                        $inv_link  = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($inv_token);
-                        $setpassword_block = "<p>To access the admin panel you'll need to set your password first &mdash; "
-                                           . "<a href=\"$inv_link\">click here to set your password</a> (link valid for 48 hours).</p>";
+            if ($org_id_raw === 'new') {
+                if (!filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
+                    $error = 'Please enter a valid email address for the new organiser.';
+                    $party_modal_open = true;
+                } else {
+                    $existing = mpd_get_user_by_email($new_email);
+                    if ($existing !== false && !empty($existing['password_hash'])) {
+                        $error = 'An active account already exists for that email. Select them from the organiser list.';
+                        $party_modal_open = true;
+                    } elseif ($existing !== false) {
+                        $org_id = (int)$existing['id'];
+                    } else {
+                        mpd_create_user($new_email, 'organizer');
+                        $created = mpd_get_user_by_email($new_email);
+                        if ($created !== false) {
+                            $org_id = (int)$created['id'];
+                        }
                     }
-
-                    $body = mpd_render_email('email_welcome_body', [
-                        'party_name'        => htmlspecialchars($name),
-                        'guest_url'         => $guest_url,
-                        'admin_url'         => $admin_url,
-                        'setpassword_block' => $setpassword_block,
-                    ]);
-                    mpd_send_email($org['email'], "Your party gallery is ready: $name", $body);
                 }
-                $success = "Party '$name' created with slug '$slug'. Directories provisioned.";
+            } else {
+                $org_id = (int)$org_id_raw;
+            }
+
+            if ($error === '') {
+                if ($slug === '' || strlen($slug) < 3) {
+                    $error = 'Party URL slug must be at least 3 characters (lowercase letters, numbers, hyphens only).';
+                    $party_modal_open = true;
+                } elseif ($name === '') {
+                    $error = 'Party name is required.';
+                    $party_modal_open = true;
+                } elseif ($org_id === 0) {
+                    $error = 'Please select or create an organiser.';
+                    $party_modal_open = true;
+                } elseif (mpd_get_party_by_slug($slug) !== false) {
+                    $error = "The slug '$slug' is already taken. Please choose another.";
+                    $party_modal_open = true;
+                } else {
+                    mpd_create_party(
+                        $slug, $name, $org_id, $me,
+                        $edt    !== '' ? $edt    : null,
+                        $info   !== '' ? $info   : null,
+                        $notify !== '' ? $notify : null
+                    );
+                    mpd_ensure_party_dirs($slug);
+
+                    $org = mpd_get_user_by_id($org_id);
+                    if ($org) {
+                        $guest_url = BASE_URL . '/party?id=' . urlencode($slug);
+                        $admin_url = BASE_URL . '/party/admin/index.php';
+                        $setpassword_block = '';
+                        if (empty($org['password_hash'])) {
+                            $inv_token = mpd_set_user_token($org_id);
+                            $inv_link  = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($inv_token);
+                            $setpassword_block = "<p>To access the admin panel you'll need to set your password first &mdash; "
+                                               . "<a href=\"$inv_link\">click here to set your password</a> (link valid for 48 hours).</p>";
+                        }
+                        $body = mpd_render_email('email_welcome_body', [
+                            'party_name'        => htmlspecialchars($name),
+                            'guest_url'         => $guest_url,
+                            'admin_url'         => $admin_url,
+                            'setpassword_block' => $setpassword_block,
+                        ]);
+                        mpd_send_email($org['email'], "Your party gallery is ready: $name", $body);
+                    }
+                    $success = "Party '$name' created with slug '$slug'.";
+                }
             }
         }
 
@@ -138,11 +139,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $success = 'Party status updated.';
             }
         }
+
+        // ─ Delete party ─
+        if ($action === 'delete_party') {
+            $pid = (int)($_POST['party_id'] ?? 0);
+            if ($pid > 0) {
+                $pt = mpd_get_party_by_id($pid);
+                mpd_delete_party($pid);
+                $success = $pt ? "Party '{$pt['party_name']}' deleted." : 'Party deleted.';
+            }
+        }
+
+        // ─ Resend party invite ─
+        if ($action === 'resend_invite') {
+            $pid = (int)($_POST['party_id'] ?? 0);
+            $pt  = $pid > 0 ? mpd_get_party_by_id($pid) : false;
+            if ($pt === false) {
+                $error = 'Party not found.';
+            } else {
+                $org = mpd_get_user_by_id((int)$pt['organizer_id']);
+                if ($org === false) {
+                    $error = 'Organiser not found.';
+                } else {
+                    $guest_url = BASE_URL . '/party?id=' . urlencode($pt['slug']);
+                    $admin_url = BASE_URL . '/party/admin/index.php';
+                    $setpassword_block = '';
+                    if (empty($org['password_hash'])) {
+                        $inv_token = mpd_set_user_token((int)$org['id']);
+                        $inv_link  = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($inv_token);
+                        $setpassword_block = "<p>To access the admin panel you'll need to set your password first &mdash; "
+                                           . "<a href=\"$inv_link\">click here to set your password</a> (link valid for 48 hours).</p>";
+                    }
+                    $body = mpd_render_email('email_welcome_body', [
+                        'party_name'        => htmlspecialchars($pt['party_name']),
+                        'guest_url'         => $guest_url,
+                        'admin_url'         => $admin_url,
+                        'setpassword_block' => $setpassword_block,
+                    ]);
+                    mpd_send_email($org['email'], "Your party gallery: " . $pt['party_name'], $body);
+                    $success = 'Invite resent to ' . htmlspecialchars($org['email']) . '.';
+                }
+            }
+        }
     }
 }
 
 $parties    = mpd_get_all_parties();
-$organizers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organizer');
+$organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organizer');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -154,35 +197,39 @@ $organizers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
   <style nonce="<?= $nonce ?>">
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Nunito', sans-serif; background: #1a1035; color: #f0ebff; min-height: 100vh; }
+
+    /* Topbar */
     .topbar { position: sticky; top: 0; z-index: 50; height: 50px; background: #160f35; border-bottom: 1px solid #2d1b69; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; }
     .topbar .nav-links { display: flex; gap: 16px; align-items: center; }
     .nav-link { color: #c9b8ff; font-size: 0.82rem; text-decoration: none; }
     .nav-link:hover { color: #f5a623; }
     .nav-link.active { color: #f5a623; font-weight: 700; }
-    .topbar .signout { color: #c9b8ff; font-size: 0.8rem; text-decoration: none; }
-    .topbar .signout:hover { color: #f5a623; }
+    .signout { color: #c9b8ff; font-size: 0.8rem; text-decoration: none; }
+    .signout:hover { color: #f5a623; }
+
+    /* Page */
     .page { max-width: 1200px; margin: 0 auto; padding: 28px 20px; }
-    h1 { font-size: 1.5rem; font-weight: 900; margin-bottom: 24px; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    h1 { font-size: 1.5rem; font-weight: 900; }
     h2 { font-size: 1.05rem; font-weight: 900; color: #c9b8ff; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px; }
     .msg { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; }
     .msg-ok  { background: #1a4a2e; color: #6ee7a0; }
     .msg-err { background: #4a1a1a; color: #f87171; }
     hr { border: none; border-top: 2px solid #2d1b69; margin: 32px 0; }
 
-    /* Forms */
-    .form-card { background: #2d1b69; border-radius: 12px; padding: 24px 28px; max-width: 560px; }
-    .form-row { margin-bottom: 16px; }
-    label { display: block; font-size: 0.82rem; font-weight: 700; color: #c9b8ff; margin-bottom: 5px; }
-    input[type=text], input[type=email], input[type=datetime-local], select, textarea {
-      width: 100%; padding: 10px 14px; border-radius: 8px; border: 2px solid #4b35a0;
-      background: #160f35; color: #f0ebff; font-size: 0.9rem; font-family: inherit;
-    }
-    textarea { resize: vertical; min-height: 80px; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: #f5a623; }
-    .hint { font-size: 0.74rem; color: #6b5ca5; margin-top: 4px; }
-    .btn { padding: 10px 22px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: inherit; }
-    .btn-primary { background: #f5a623; color: #1a1035; }
+    /* Buttons */
+    .btn { padding: 10px 22px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: inherit; text-decoration: none; display: inline-block; }
+    .btn-primary   { background: #f5a623; color: #1a1035; }
     .btn-primary:hover { background: #e6941a; }
+    .btn-sm { padding: 4px 12px; border: none; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; font-family: inherit; text-decoration: none; display: inline-block; }
+    .btn-toggle-enable  { background: #27ae60; color: #fff; }
+    .btn-toggle-enable:hover { background: #219150; }
+    .btn-toggle-disable { background: #4a3580; color: #c9b8ff; }
+    .btn-toggle-disable:hover { background: #5a4590; color: #fff; }
+    .btn-ghost { background: #2d1b69; color: #c9b8ff; border: 1px solid #4b35a0; }
+    .btn-ghost:hover { background: #3d2494; color: #f0ebff; }
+    .btn-danger { background: #7a1a1a; color: #f87171; }
+    .btn-danger:hover { background: #9a2a2a; color: #fca5a5; }
 
     /* Party table */
     .party-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
@@ -193,13 +240,30 @@ $organizers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     .active-pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
     .pill-active   { background: #1a4a2e; color: #6ee7a0; }
     .pill-inactive { background: #4a1a1a; color: #f87171; }
-    .toggle-form { display: inline; }
-    .btn-toggle { padding: 4px 12px; border: none; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; font-family: inherit; }
-    .btn-enable  { background: #27ae60; color: #fff; }
-    .btn-enable:hover { background: #219150; }
-    .btn-disable { background: #4a3580; color: #c9b8ff; }
-    .btn-disable:hover { background: #5a4590; color: #fff; }
     .guest-link { color: #9c7fff; font-size: 0.75rem; }
+    .action-cell { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .inline-form { display: inline; }
+
+    /* Modal */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(10,6,30,0.85); z-index: 200; overflow-y: auto; }
+    .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; }
+    .modal { background: #1e1248; border: 1px solid #4b35a0; border-radius: 16px; padding: 32px 36px; width: 100%; max-width: 560px; position: relative; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .modal h2 { margin-bottom: 0; text-transform: none; font-size: 1.1rem; letter-spacing: 0; color: #f0ebff; }
+    .modal-close { background: none; border: none; color: #6b5ca5; font-size: 1.4rem; cursor: pointer; line-height: 1; padding: 0 4px; }
+    .modal-close:hover { color: #f0ebff; }
+
+    /* Form */
+    .form-row { margin-bottom: 16px; }
+    label { display: block; font-size: 0.82rem; font-weight: 700; color: #c9b8ff; margin-bottom: 5px; }
+    input[type=text], input[type=email], input[type=datetime-local], select, textarea {
+      width: 100%; padding: 10px 14px; border-radius: 8px; border: 2px solid #4b35a0;
+      background: #160f35; color: #f0ebff; font-size: 0.9rem; font-family: inherit;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #f5a623; }
+    .hint { font-size: 0.74rem; color: #6b5ca5; margin-top: 4px; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
@@ -214,26 +278,28 @@ $organizers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
 </div>
 
 <div class="page">
-  <h1>🎉 Party Management</h1>
+  <div class="page-header">
+    <h1>🎉 Party Management</h1>
+    <button class="btn btn-primary" onclick="openModal()">+ New Party</button>
+  </div>
 
   <?php if ($success !== ''): ?>
     <div class="msg msg-ok"><?= htmlspecialchars($success) ?></div>
-  <?php elseif ($error !== ''): ?>
+  <?php elseif ($error !== '' && !$party_modal_open): ?>
     <div class="msg msg-err"><?= htmlspecialchars($error) ?></div>
   <?php endif; ?>
 
   <!-- ── Party list ── -->
-  <h2>Active Parties</h2>
   <?php if (empty($parties)): ?>
-    <p style="color:#4a3580;font-size:.9rem;margin-bottom:24px;">No parties yet. Create one below.</p>
+    <p style="color:#4a3580;font-size:.9rem;">No parties yet. Click <strong>New Party</strong> to create one.</p>
   <?php else: ?>
-  <div style="overflow-x:auto;margin-bottom:32px;">
+  <div style="overflow-x:auto;">
     <table class="party-table">
       <thead>
         <tr>
           <th>Party Name</th>
           <th>Slug / URL</th>
-          <th>Organizer</th>
+          <th>Organiser</th>
           <th>Event Date</th>
           <th>Status</th>
           <th>Actions</th>
@@ -255,17 +321,37 @@ $organizers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
             </span>
           </td>
           <td>
-            <form class="toggle-form" method="post">
-              <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-              <input type="hidden" name="action" value="toggle_party">
-              <input type="hidden" name="party_id" value="<?= (int)$pt['id'] ?>">
-              <input type="hidden" name="active" value="<?= $pt['is_active'] ? '0' : '1' ?>">
-              <button type="submit" class="btn-toggle <?= $pt['is_active'] ? 'btn-disable' : 'btn-enable' ?>">
-                <?= $pt['is_active'] ? 'Pause' : 'Enable' ?>
-              </button>
-            </form>
-            &nbsp;
-            <a class="btn btn-toggle btn-disable" href="qrcode.php?party=<?= urlencode($pt['slug']) ?>" style="text-decoration:none;display:inline-block;">QR</a>
+            <div class="action-cell">
+              <!-- Toggle active -->
+              <form class="inline-form" method="post">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                <input type="hidden" name="action"   value="toggle_party">
+                <input type="hidden" name="party_id" value="<?= (int)$pt['id'] ?>">
+                <input type="hidden" name="active"   value="<?= $pt['is_active'] ? '0' : '1' ?>">
+                <button type="submit" class="btn-sm <?= $pt['is_active'] ? 'btn-toggle-disable' : 'btn-toggle-enable' ?>">
+                  <?= $pt['is_active'] ? 'Pause' : 'Enable' ?>
+                </button>
+              </form>
+
+              <!-- QR code -->
+              <a class="btn-sm btn-ghost" href="qrcode.php?party=<?= urlencode($pt['slug']) ?>">QR</a>
+
+              <!-- Resend invite -->
+              <form class="inline-form" method="post">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                <input type="hidden" name="action"   value="resend_invite">
+                <input type="hidden" name="party_id" value="<?= (int)$pt['id'] ?>">
+                <button type="submit" class="btn-sm btn-ghost" title="Resend party invite email to organiser">Resend invite</button>
+              </form>
+
+              <!-- Delete -->
+              <form class="inline-form" method="post" data-confirm="Delete party '<?= htmlspecialchars(addslashes($pt['party_name'])) ?>'? This cannot be undone.">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                <input type="hidden" name="action"   value="delete_party">
+                <input type="hidden" name="party_id" value="<?= (int)$pt['id'] ?>">
+                <button type="submit" class="btn-sm btn-danger">Delete</button>
+              </form>
+            </div>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -273,12 +359,20 @@ $organizers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     </table>
   </div>
   <?php endif; ?>
+</div>
 
-  <hr>
+<!-- ── New Party Modal ── -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-header">
+      <h2 id="modal-title">🎉 Create New Party</h2>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+    </div>
 
-  <!-- ── Create party ── -->
-  <h2>Create New Party</h2>
-  <div class="form-card" style="margin-bottom:32px;">
+    <?php if ($party_modal_open && $error !== ''): ?>
+      <div class="msg msg-err" style="margin-bottom:20px;"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
+
     <form method="post" autocomplete="off">
       <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
       <input type="hidden" name="action" value="create_party">
@@ -298,16 +392,25 @@ $organizers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
       </div>
 
       <div class="form-row">
-        <label for="organizer_id">Organizer *</label>
-        <select id="organizer_id" name="organizer_id" required>
-          <option value="">— Select organizer —</option>
-          <?php foreach ($organizers as $u): ?>
+        <label for="organiser_id">Organiser *</label>
+        <select id="organiser_id" name="organiser_id" required onchange="toggleNewOrganiser(this.value)">
+          <option value="">— Select organiser —</option>
+          <?php foreach ($organisers as $u): ?>
             <option value="<?= (int)$u['id'] ?>"
-                    <?= ((int)($_POST['organizer_id'] ?? 0) === (int)$u['id']) ? 'selected' : '' ?>>
+                    <?= (($_POST['organiser_id'] ?? '') === (string)$u['id']) ? 'selected' : '' ?>>
               <?= htmlspecialchars($u['email']) ?>
             </option>
           <?php endforeach; ?>
+          <option value="new" <?= (($_POST['organiser_id'] ?? '') === 'new') ? 'selected' : '' ?>>+ New organiser...</option>
         </select>
+      </div>
+
+      <div class="form-row <?= (($_POST['organiser_id'] ?? '') !== 'new') ? 'hidden' : '' ?>" id="new-organiser-row">
+        <label for="new_organiser_email">New Organiser Email *</label>
+        <input type="email" id="new_organiser_email" name="new_organiser_email"
+               value="<?= htmlspecialchars($_POST['new_organiser_email'] ?? '') ?>"
+               placeholder="organiser@example.com">
+        <p class="hint">An account will be created and the welcome email will include a link for them to set their password.</p>
       </div>
 
       <div class="form-row">
@@ -332,27 +435,53 @@ $organizers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
       <button type="submit" class="btn btn-primary">Create Party</button>
     </form>
   </div>
-
-  <hr>
-
-  <!-- ── Create organizer account ── -->
-  <h2>Invite New Organizer</h2>
-  <div class="form-card">
-    <p style="font-size:.85rem;color:#9c7fff;margin-bottom:16px;">
-      Creates an organizer account and emails a password-set link (valid 48 hours).
-    </p>
-    <form method="post" autocomplete="off">
-      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-      <input type="hidden" name="action" value="create_organizer">
-      <div class="form-row">
-        <label for="organizer_email">Organizer Email *</label>
-        <input type="email" id="organizer_email" name="organizer_email" required
-               value="<?= htmlspecialchars($_POST['organizer_email'] ?? '') ?>">
-      </div>
-      <button type="submit" class="btn btn-primary">Send Invitation</button>
-    </form>
-  </div>
-
 </div>
+
+<script nonce="<?= $nonce ?>">
+(function () {
+  var overlay = document.getElementById('modal-overlay');
+
+  window.openModal = function () {
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeModal = function () {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) closeModal();
+  });
+
+  window.toggleNewOrganiser = function (val) {
+    var row = document.getElementById('new-organiser-row');
+    var inp = document.getElementById('new_organiser_email');
+    if (val === 'new') {
+      row.classList.remove('hidden');
+      inp.required = true;
+    } else {
+      row.classList.add('hidden');
+      inp.required = false;
+    }
+  };
+
+  // Delete confirmation
+  document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      if (!confirm(form.getAttribute('data-confirm'))) {
+        e.preventDefault();
+      }
+    });
+  });
+
+  // Auto-open modal on validation error
+  <?php if ($party_modal_open): ?>
+  openModal();
+  <?php endif; ?>
+}());
+</script>
+
 </body>
 </html>
