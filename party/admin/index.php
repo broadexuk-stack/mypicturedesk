@@ -98,6 +98,14 @@ function thumb_url(array $p): string {
     $ext = output_extension($p['original_extension']);
     return '../gallery/thumbs/' . $p['uuid'] . '.' . $ext;
 }
+
+function full_url(array $p): string {
+    if ($p['status'] === 'pending' || ($p['status'] === 'removed' && empty($p['approved_at']))) {
+        return 'thumb.php?uuid=' . urlencode($p['uuid']) . '&full=1';
+    }
+    $ext = output_extension($p['original_extension']);
+    return '../gallery/' . $p['uuid'] . '.' . $ext;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -242,6 +250,26 @@ function thumb_url(array $p): string {
     /* Card fade-out on action */
     .photo-card.removing { opacity: 0; transform: scale(0.9); transition: all 0.3s ease; pointer-events: none; }
 
+    /* Clickable card images */
+    .photo-card img { cursor: zoom-in; }
+
+    /* ── Lightbox ── */
+    .lb { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.93); display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .lb[hidden] { display: none; }
+    .lb-figure { display: flex; flex-direction: column; align-items: center; max-width: min(92vw, 960px); gap: 14px; }
+    .lb-img { max-width: 100%; max-height: 72vh; object-fit: contain; border-radius: 10px; display: block; }
+    .lb-meta { background: rgba(255,255,255,0.07); border-radius: 10px; padding: 12px 18px; width: 100%; display: flex; flex-wrap: wrap; gap: 4px 28px; }
+    .lb-meta-row { display: flex; gap: 8px; font-size: 0.85rem; color: #c9b8ff; align-items: center; }
+    .lb-label { color: #f5a623; font-weight: 700; min-width: 70px; }
+    .lb-close { position: fixed; top: 14px; right: 18px; background: rgba(255,255,255,0.12); border: none; color: #fff; font-size: 1.6rem; line-height: 1; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .lb-close:hover { background: rgba(255,255,255,0.25); }
+    .lb-nav { position: fixed; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.1); border: none; color: #fff; font-size: 2.4rem; line-height: 1; width: 50px; height: 70px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+    .lb-nav:hover:not(:disabled) { background: rgba(255,255,255,0.22); }
+    .lb-nav:disabled { opacity: 0.18; cursor: default; }
+    .lb-prev { left: 10px; }
+    .lb-next { right: 10px; }
+    .lb-counter { font-size: 0.78rem; color: #6b5ca5; position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); }
+
     /* New card pop-in */
     @keyframes card-pop { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
     .photo-card.card-new { animation: card-pop 0.35s ease; }
@@ -314,7 +342,11 @@ function thumb_url(array $p): string {
       <p class="empty-msg">No photos waiting for review.</p>
     <?php else: ?>
       <?php foreach ($pending as $p): ?>
-      <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem">
+      <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem"
+           data-full-url="<?= htmlspecialchars(full_url($p)) ?>"
+           data-timestamp="<?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?>"
+           data-ip="<?= htmlspecialchars($p['ip_display']) ?>"
+           data-section-label="Awaiting Approval">
         <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
              alt="Pending photo"
              loading="lazy"
@@ -345,7 +377,11 @@ function thumb_url(array $p): string {
       <p class="empty-msg">No approved photos yet.</p>
     <?php else: ?>
       <?php foreach ($approved as $p): ?>
-      <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem">
+      <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem"
+           data-full-url="<?= htmlspecialchars(full_url($p)) ?>"
+           data-timestamp="<?= htmlspecialchars(date('d M Y H:i', strtotime($p['approved_at'] ?? $p['upload_timestamp']))) ?>"
+           data-ip="<?= htmlspecialchars($p['ip_display']) ?>"
+           data-section-label="In the Gallery">
         <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
              alt="Approved photo"
              loading="lazy"
@@ -382,7 +418,11 @@ function thumb_url(array $p): string {
     <p class="empty-msg">Wastebasket is empty.</p>
   <?php else: ?>
     <?php foreach ($removed as $p): ?>
-    <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem">
+    <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem"
+         data-full-url="<?= htmlspecialchars(full_url($p)) ?>"
+         data-timestamp="<?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?>"
+         data-ip="<?= htmlspecialchars($p['ip_display']) ?>"
+         data-section-label="Wastebasket">
       <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
            alt="Wastebasket photo"
            loading="lazy"
@@ -401,6 +441,22 @@ function thumb_url(array $p): string {
   </div>
 
 </div><!-- /admin-body -->
+
+<!-- ── Lightbox ── -->
+<div id="lb" class="lb" hidden role="dialog" aria-modal="true" aria-label="Photo preview">
+  <button class="lb-close" id="lb-close" aria-label="Close lightbox">×</button>
+  <button class="lb-nav lb-prev" id="lb-prev" aria-label="Previous photo">&#8249;</button>
+  <button class="lb-nav lb-next" id="lb-next" aria-label="Next photo">&#8250;</button>
+  <figure class="lb-figure">
+    <img id="lb-img" src="" alt="Full size photo" class="lb-img">
+    <figcaption class="lb-meta">
+      <div class="lb-meta-row"><span class="lb-label">Uploaded</span><span id="lb-time"></span></div>
+      <div class="lb-meta-row"><span class="lb-label">IP</span><span id="lb-ip"></span></div>
+      <div class="lb-meta-row"><span class="lb-label">Section</span><span id="lb-section"></span></div>
+    </figcaption>
+  </figure>
+  <div class="lb-counter" id="lb-counter"></div>
+</div>
 
 <script nonce="<?= $nonce ?>">
 (function () {
@@ -449,12 +505,21 @@ function thumb_url(array $p): string {
     return '../gallery/thumbs/' + p.uuid + '.' + outputExt(p.original_extension);
   }
 
+  function fullUrl(p) {
+    if (p.status === 'pending' || (p.status === 'removed' && !p.approved_at)) {
+      return 'thumb.php?uuid=' + encodeURIComponent(p.uuid) + '&full=1';
+    }
+    return '../gallery/' + p.uuid + '.' + outputExt(p.original_extension);
+  }
+
   function fmtDate(ts) {
     if (!ts) return '';
     const d = new Date(ts.replace(' ', 'T'));
     return d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
       + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
   }
+
+  const sectionLabels = { pending: 'Awaiting Approval', approved: 'In the Gallery', removed: 'Wastebasket' };
 
   function buildCard(p, section) {
     const div = document.createElement('div');
@@ -464,6 +529,11 @@ function thumb_url(array $p): string {
     setTimeout(() => div.classList.remove('card-new'), 400);
 
     const displayTs = (section === 'approved' && p.approved_at) ? p.approved_at : p.upload_timestamp;
+    div.dataset.fullUrl      = fullUrl(p);
+    div.dataset.timestamp    = fmtDate(p.upload_timestamp);
+    div.dataset.ip           = p.ip_display;
+    div.dataset.sectionLabel = sectionLabels[section] || section;
+
     let actions = '';
     if (section === 'pending') {
       actions = `<button class="btn-approve" data-uuid="${escHtml(p.uuid)}" data-action="approve" data-section="pending" aria-label="Approve">✅</button>`
@@ -635,6 +705,70 @@ function thumb_url(array $p): string {
       card.classList.remove('removing');
       alert('Network error. Please try again.');
     });
+  });
+
+  // ── Lightbox ─────────────────────────────────────────────────
+  const lb        = document.getElementById('lb');
+  const lbImg     = document.getElementById('lb-img');
+  const lbTime    = document.getElementById('lb-time');
+  const lbIp      = document.getElementById('lb-ip');
+  const lbSection = document.getElementById('lb-section');
+  const lbCloseBtn= document.getElementById('lb-close');
+  const lbPrev    = document.getElementById('lb-prev');
+  const lbNext    = document.getElementById('lb-next');
+  const lbCounter = document.getElementById('lb-counter');
+
+  let lbCards = [];
+  let lbIdx   = 0;
+
+  function lbGetCards() {
+    return [...document.querySelectorAll('.photo-card:not(.removing)')];
+  }
+
+  function lbRefresh() {
+    const card = lbCards[lbIdx];
+    if (!card) return;
+    lbImg.src              = card.dataset.fullUrl || '';
+    lbTime.textContent     = card.dataset.timestamp || '';
+    lbIp.textContent       = card.dataset.ip || '';
+    lbSection.textContent  = card.dataset.sectionLabel || '';
+    lbPrev.disabled        = lbIdx === 0;
+    lbNext.disabled        = lbIdx === lbCards.length - 1;
+    lbCounter.textContent  = (lbIdx + 1) + ' / ' + lbCards.length;
+  }
+
+  function lbOpen(card) {
+    lbCards = lbGetCards();
+    lbIdx   = lbCards.indexOf(card);
+    if (lbIdx === -1) lbIdx = 0;
+    lbRefresh();
+    lb.hidden = false;
+    document.body.style.overflow = 'hidden';
+    lbCloseBtn.focus();
+  }
+
+  function lbHide() {
+    lb.hidden = true;
+    lbImg.src = '';
+    document.body.style.overflow = '';
+  }
+
+  lbCloseBtn.addEventListener('click', lbHide);
+  lb.addEventListener('click', e => { if (e.target === lb) lbHide(); });
+  lbPrev.addEventListener('click', () => { if (lbIdx > 0) { lbIdx--; lbRefresh(); } });
+  lbNext.addEventListener('click', () => { if (lbIdx < lbCards.length - 1) { lbIdx++; lbRefresh(); } });
+
+  document.addEventListener('keydown', e => {
+    if (lb.hidden) return;
+    if (e.key === 'Escape')     { lbHide(); }
+    if (e.key === 'ArrowLeft'  && lbIdx > 0)                  { lbIdx--; lbRefresh(); }
+    if (e.key === 'ArrowRight' && lbIdx < lbCards.length - 1) { lbIdx++; lbRefresh(); }
+  });
+
+  document.addEventListener('click', e => {
+    const img = e.target.closest('.photo-card img');
+    if (!img) return;
+    lbOpen(img.closest('.photo-card'));
   });
 })();
 </script>

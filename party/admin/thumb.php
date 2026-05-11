@@ -27,9 +27,35 @@ if (!preg_match('/^[0-9a-f]{32}$/', $uuid)) {
     exit;
 }
 
+// Full-size request — serve the original quarantine file
+// HEIC originals are not browser-displayable, so we fall through to the thumb in that case.
+if (!empty($_GET['full'])) {
+    $found    = null;
+    $foundExt = '';
+    foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+        $candidate = QUARANTINE_DIR . '/' . $uuid . '.' . $ext;
+        if (file_exists($candidate)) { $found = $candidate; $foundExt = $ext; break; }
+    }
+    if ($found !== null) {
+        $mime = match ($foundExt) {
+            'png'  => 'image/png',
+            'webp' => 'image/webp',
+            default=> 'image/jpeg',
+        };
+        header('Content-Type: '   . $mime);
+        header('Content-Length: ' . filesize($found));
+        header('Cache-Control: private, max-age=60');
+        header('X-Content-Type-Options: nosniff');
+        readfile($found);
+        exit;
+    }
+    // Fall through: HEIC original or missing — serve the thumb instead
+}
+
 // Find the thumbnail — HEIC originals are stored as jpg thumbs
 $qThumbDir = QUARANTINE_DIR . '/thumbs';
 $found     = null;
+$foundExt  = '';
 foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
     $candidate = $qThumbDir . '/' . $uuid . '.' . $ext;
     if (file_exists($candidate)) {
