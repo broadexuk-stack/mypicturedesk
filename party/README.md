@@ -1,6 +1,6 @@
 # Party Photo Gallery
 
-A mobile-first party photo gallery. Guests scan a link, tap a big button, take a photo, and submit it. An admin reviews and approves photos before they appear in the public gallery.
+A mobile-first party photo gallery. Guests scan a link, tap a big button, take a photo, and submit it. An admin reviews and approves photos before they appear in the public gallery. UD
 
 ---
 

@@ -2,7 +2,7 @@
 deployment:
   tasks:
     # ── Set your cPanel username below ──────────────────────────
-    - export DEPLOYPATH=/home/mypicted/public_html/party
+    - export DEPLOYPATH=/home/gqsoav7aer3y/public_html/party
 
     # ── Ensure writable directories exist ───────────────────────
     - /bin/mkdir -p $DEPLOYPATH/quarantine/thumbs
