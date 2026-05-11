@@ -45,6 +45,14 @@ img { display: block; max-width: 100%; }
 a { color: var(--clr-gold); }
 a:hover { color: var(--clr-gold-dark); }
 
+/* ── Hide native file input chrome ──────────────────────────── */
+/* Both inputs are triggered by <label for="..."> so they never
+   need to be visible. This overrides any browser default. */
+#camera-input,
+#library-input {
+  display: none !important;
+}
+
 /* ── Version badge ───────────────────────────────────────────── */
 .version-badge {
   position: fixed;
