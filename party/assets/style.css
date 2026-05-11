@@ -428,6 +428,19 @@ a:hover { color: var(--clr-gold-dark); }
   text-align: center;
 }
 
+.name-change-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--clr-text-muted);
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.name-change-btn:hover { color: var(--clr-text); }
+
 /* ── Name prompt modal ───────────────────────────────────────── */
 .name-modal {
   position: fixed;

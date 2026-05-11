@@ -88,7 +88,7 @@ header('Referrer-Policy: same-origin');
 
         <p class="name-byline" id="name-byline" hidden>
           Uploading as <strong id="name-byline-text"></strong> &middot;
-          <button type="button" id="btn-change-name" class="link-label" style="background:none;border:none;padding:0;font-size:inherit;min-height:auto;">change</button>
+          <button type="button" id="btn-change-name" class="name-change-btn">change</button>
         </p>
       </div>
 
