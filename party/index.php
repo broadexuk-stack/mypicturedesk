@@ -40,6 +40,8 @@ header('Referrer-Policy: same-origin');
 </head>
 <body>
 
+  <span class="version-badge" aria-hidden="true">v1.1</span>
+
   <!-- ── Header ─────────────────────────────────────── -->
   <header class="site-header">
     <div class="header-inner">

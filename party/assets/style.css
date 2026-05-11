@@ -45,6 +45,18 @@ img { display: block; max-width: 100%; }
 a { color: var(--clr-gold); }
 a:hover { color: var(--clr-gold-dark); }
 
+/* ── Version badge ───────────────────────────────────────────── */
+.version-badge {
+  position: fixed;
+  top: 6px;
+  left: 8px;
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.35);
+  z-index: 100;
+  pointer-events: none;
+  user-select: none;
+}
+
 /* ── Site header ─────────────────────────────────────────────── */
 .site-header {
   background: var(--clr-surface);
