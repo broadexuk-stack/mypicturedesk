@@ -296,8 +296,8 @@
     // Hide empty placeholder once we have at least one photo
     if (galleryEmpty) galleryEmpty.hidden = true;
 
-    // Prepend new photos (they arrive newest-first from the API)
-    photos.forEach(photo => {
+    // Reverse so that prepending in a loop ends with the newest at the top
+    photos.slice().reverse().forEach(photo => {
       // Derive a stable ID from the thumb URL
       const uid = photo.thumb;
       if (knownUuids.has(uid)) return; // already displayed
