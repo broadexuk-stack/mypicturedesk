@@ -280,7 +280,7 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
 <div class="page">
   <div class="page-header">
     <h1>🎉 Party Management</h1>
-    <button class="btn btn-primary" onclick="openModal()">+ New Party</button>
+    <button class="btn btn-primary" id="btn-new-party">+ New Party</button>
   </div>
 
   <?php if ($success !== ''): ?>
@@ -366,7 +366,7 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-header">
       <h2 id="modal-title">🎉 Create New Party</h2>
-      <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+      <button class="modal-close" id="btn-close-modal" aria-label="Close">&times;</button>
     </div>
 
     <?php if ($party_modal_open && $error !== ''): ?>
@@ -393,7 +393,7 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
 
       <div class="form-row">
         <label for="organiser_id">Organiser *</label>
-        <select id="organiser_id" name="organiser_id" required onchange="toggleNewOrganiser(this.value)">
+        <select id="organiser_id" name="organiser_id" required>
           <option value="">— Select organiser —</option>
           <?php foreach ($organisers as $u): ?>
             <option value="<?= (int)$u['id'] ?>"
@@ -439,35 +439,38 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
 
 <script nonce="<?= $nonce ?>">
 (function () {
-  var overlay = document.getElementById('modal-overlay');
+  var overlay  = document.getElementById('modal-overlay');
 
-  window.openModal = function () {
+  function openModal() {
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
-  };
+  }
 
-  window.closeModal = function () {
+  function closeModal() {
     overlay.classList.remove('open');
     document.body.style.overflow = '';
-  };
+  }
+
+  document.getElementById('btn-new-party').addEventListener('click', openModal);
+  document.getElementById('btn-close-modal').addEventListener('click', closeModal);
 
   overlay.addEventListener('click', function (e) {
     if (e.target === overlay) closeModal();
   });
 
-  window.toggleNewOrganiser = function (val) {
+  var organiserSelect = document.getElementById('organiser_id');
+  organiserSelect.addEventListener('change', function () {
     var row = document.getElementById('new-organiser-row');
     var inp = document.getElementById('new_organiser_email');
-    if (val === 'new') {
+    if (this.value === 'new') {
       row.classList.remove('hidden');
       inp.required = true;
     } else {
       row.classList.add('hidden');
       inp.required = false;
     }
-  };
+  });
 
-  // Delete confirmation
   document.querySelectorAll('form[data-confirm]').forEach(function (form) {
     form.addEventListener('submit', function (e) {
       if (!confirm(form.getAttribute('data-confirm'))) {
@@ -476,7 +479,6 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     });
   });
 
-  // Auto-open modal on validation error
   <?php if ($party_modal_open): ?>
   openModal();
   <?php endif; ?>
