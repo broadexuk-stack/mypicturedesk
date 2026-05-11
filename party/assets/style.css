@@ -409,6 +409,33 @@ a:hover { color: var(--clr-gold-dark); }
 }
 .lightbox-close:hover { background: var(--clr-error); border-color: var(--clr-error); }
 
+.lightbox-prev,
+.lightbox-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(45,27,105,0.75);
+  color: var(--clr-text);
+  border: none;
+  width: 52px;
+  height: 72px;
+  border-radius: 10px;
+  font-size: 2.6rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition), opacity var(--transition);
+  touch-action: manipulation;
+}
+.lightbox-prev { left: 10px; }
+.lightbox-next { right: 10px; }
+.lightbox-prev:hover:not(:disabled),
+.lightbox-next:hover:not(:disabled) { background: rgba(45,27,105,0.95); }
+.lightbox-prev:disabled,
+.lightbox-next:disabled { opacity: 0.15; cursor: default; }
+
 /* ── Animations ──────────────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; }

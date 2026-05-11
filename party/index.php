@@ -148,6 +148,8 @@ header('Referrer-Policy: same-origin');
   <!-- ── Lightbox ───────────────────────────────────── -->
   <div id="lightbox" class="lightbox" hidden role="dialog" aria-modal="true" aria-label="Photo lightbox">
     <button class="lightbox-close" id="lightbox-close" aria-label="Close photo">&times;</button>
+    <button class="lightbox-prev" id="lightbox-prev" aria-label="Previous photo" disabled>&#8249;</button>
+    <button class="lightbox-next" id="lightbox-next" aria-label="Next photo"     disabled>&#8250;</button>
     <img id="lightbox-img" src="" alt="Full size photo" class="lightbox-img">
   </div>
 
