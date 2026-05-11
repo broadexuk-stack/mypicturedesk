@@ -37,6 +37,8 @@
   const lightbox      = document.getElementById('lightbox');
   const lightboxImg   = document.getElementById('lightbox-img');
   const lightboxClose = document.getElementById('lightbox-close');
+  const lightboxPrev  = document.getElementById('lightbox-prev');
+  const lightboxNext  = document.getElementById('lightbox-next');
 
   // Current selected File object
   let selectedFile = null;
@@ -334,8 +336,24 @@
 
   // ── Lightbox ──────────────────────────────────────────────────
 
+  let lbPhotos = [];
+  let lbIdx    = 0;
+
+  function lbGetPhotos() {
+    return [...galleryGrid.querySelectorAll('.gallery-thumb')].map(t => t.dataset.full);
+  }
+
+  function lbShow() {
+    lightboxImg.src          = lbPhotos[lbIdx] || '';
+    lightboxPrev.disabled    = lbIdx === 0;
+    lightboxNext.disabled    = lbIdx === lbPhotos.length - 1;
+  }
+
   function openLightbox(src) {
-    lightboxImg.src = src;
+    lbPhotos = lbGetPhotos();
+    lbIdx    = lbPhotos.indexOf(src);
+    if (lbIdx === -1) lbIdx = 0;
+    lbShow();
     lightbox.hidden = false;
     document.body.style.overflow = 'hidden';
     lightboxClose.focus();
@@ -347,16 +365,35 @@
     document.body.style.overflow = '';
   }
 
+  function lbPrev() { if (lbIdx > 0)                    { lbIdx--; lbShow(); } }
+  function lbNext() { if (lbIdx < lbPhotos.length - 1)  { lbIdx++; lbShow(); } }
+
+  lightboxPrev.addEventListener('click', lbPrev);
+  lightboxNext.addEventListener('click', lbNext);
   lightboxClose.addEventListener('click', closeLightbox);
 
-  // Click the backdrop (not the image) to close
+  // Click the backdrop (not the image or buttons) to close
   lightbox.addEventListener('click', (e) => {
     if (e.target === lightbox) closeLightbox();
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !lightbox.hidden) closeLightbox();
+    if (lightbox.hidden) return;
+    if (e.key === 'Escape')     closeLightbox();
+    if (e.key === 'ArrowLeft')  lbPrev();
+    if (e.key === 'ArrowRight') lbNext();
   });
+
+  // Swipe detection
+  let swipeStartX = 0;
+  lightbox.addEventListener('touchstart', (e) => {
+    swipeStartX = e.changedTouches[0].clientX;
+  }, { passive: true });
+  lightbox.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - swipeStartX;
+    if (Math.abs(dx) < 40) return; // too short to count
+    if (dx < 0) lbNext(); else lbPrev();
+  }, { passive: true });
 
   // ── Init ──────────────────────────────────────────────────────
 
