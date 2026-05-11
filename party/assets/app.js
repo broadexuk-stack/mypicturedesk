@@ -108,6 +108,18 @@
   btnChangeName.addEventListener('click', openNameModal);
   nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitName(); });
 
+  // ── Privacy modal ─────────────────────────────────────────────
+  const privacyModal    = document.getElementById('privacy-modal');
+  const btnPrivacy      = document.getElementById('btn-privacy');
+  const btnPrivacyClose = document.getElementById('btn-privacy-close');
+
+  btnPrivacy.addEventListener('click', () => { privacyModal.hidden = false; });
+  btnPrivacyClose.addEventListener('click', () => { privacyModal.hidden = true; });
+  privacyModal.addEventListener('click', (e) => { if (e.target === privacyModal) privacyModal.hidden = true; });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !privacyModal.hidden) privacyModal.hidden = true;
+  });
+
   // Show modal on first visit (after a short delay so page renders first)
   if (!currentName) {
     setTimeout(openNameModal, 350);

@@ -544,6 +544,114 @@ a:hover { color: var(--clr-gold-dark); }
 
 .name-skip:hover { color: var(--clr-text); }
 
+/* ── Privacy notice & modal ──────────────────────────────────── */
+.privacy-notice {
+  margin-top: 18px;
+  font-size: 0.72rem;
+  color: var(--clr-text-muted);
+  text-align: center;
+  line-height: 1.5;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.privacy-link {
+  background: none;
+  border: none;
+  color: var(--clr-text-muted);
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.privacy-link:hover { color: var(--clr-text); }
+
+.privacy-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: rgba(10, 5, 30, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.privacy-modal[hidden] { display: none; }
+
+.privacy-modal-card {
+  background: var(--clr-surface);
+  border-radius: var(--radius-lg);
+  padding: 32px 28px 28px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 88vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+  position: relative;
+}
+
+.privacy-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--clr-text-muted);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-family: inherit;
+}
+
+.privacy-close:hover { color: var(--clr-text); }
+
+.privacy-modal-title {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--clr-gold);
+  margin: 0 0 18px;
+  padding-right: 32px;
+}
+
+.privacy-section {
+  margin-bottom: 20px;
+}
+
+.privacy-section:last-child { margin-bottom: 0; }
+
+.privacy-section h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--clr-text);
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.privacy-section p {
+  font-size: 0.88rem;
+  color: var(--clr-text-muted);
+  line-height: 1.6;
+  margin: 0 0 6px;
+}
+
+.privacy-section p:last-child { margin-bottom: 0; }
+
+.privacy-section strong {
+  color: var(--clr-text);
+  font-weight: 700;
+}
+
 /* ── Utilities ───────────────────────────────────────────────── */
 [hidden] { display: none !important; }
 

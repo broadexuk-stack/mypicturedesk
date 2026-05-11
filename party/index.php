@@ -90,6 +90,11 @@ header('Referrer-Policy: same-origin');
           Uploading as <strong id="name-byline-text"></strong> &middot;
           <button type="button" id="btn-change-name" class="name-change-btn">change</button>
         </p>
+
+        <p class="privacy-notice">
+          By uploading, you agree that your photos will be visible in a public gallery and will be deleted after 30 days.
+          <button type="button" id="btn-privacy" class="privacy-link">About &amp; Privacy</button>
+        </p>
       </div>
 
       <!-- ── Preview state (hidden until photo selected) ── -->
@@ -151,6 +156,44 @@ header('Referrer-Policy: same-origin');
     <button class="lightbox-prev" id="lightbox-prev" aria-label="Previous photo" disabled>&#8249;</button>
     <button class="lightbox-next" id="lightbox-next" aria-label="Next photo"     disabled>&#8250;</button>
     <img id="lightbox-img" src="" alt="Full size photo" class="lightbox-img">
+  </div>
+
+  <!-- About & Privacy modal -->
+  <div id="privacy-modal" class="privacy-modal" hidden role="dialog" aria-modal="true" aria-labelledby="privacy-modal-title">
+    <div class="privacy-modal-card">
+      <button type="button" class="privacy-close" id="btn-privacy-close" aria-label="Close">&times;</button>
+      <h2 class="privacy-modal-title" id="privacy-modal-title">About This Gallery</h2>
+
+      <div class="privacy-section">
+        <p>Welcome! Our goal is to capture every moment of today&rsquo;s event through your eyes. To ensure everyone has a great experience, please take a moment to read how this service works.</p>
+      </div>
+
+      <div class="privacy-section">
+        <h3>Public Visibility</h3>
+        <p>Please be aware that this is a public gallery. Any images you upload will be visible to other guests and anyone with access to the party link.</p>
+        <p><strong>Think before you upload:</strong> Do not post any images you would not want seen by the public or other event attendees.</p>
+        <p><strong>Privacy:</strong> By uploading, you acknowledge that your photos are part of a shared experience.</p>
+      </div>
+
+      <div class="privacy-section">
+        <h3>Content Moderation</h3>
+        <p>To keep this environment fun and safe for everyone, we reserve the right to monitor uploads.</p>
+        <p><strong>Removal:</strong> Any images deemed offensive, inappropriate, or illegal will be removed immediately without notice.</p>
+        <p><strong>Reporting:</strong> If you see a photo that concerns you, please notify the party organizer.</p>
+      </div>
+
+      <div class="privacy-section">
+        <h3>Data Retention (30-Day Rule)</h3>
+        <p>We believe in &ldquo;capturing the moment, not keeping it forever.&rdquo;</p>
+        <p>All images are hosted temporarily for 30 days following the event.</p>
+        <p>After this period, all files are permanently deleted from the MyPictureDesk system to protect your privacy. Please ensure you save any photos you wish to keep before this window closes.</p>
+      </div>
+
+      <div class="privacy-section">
+        <h3>Questions?</h3>
+        <p>The MyPictureDesk platform provides the technology for this gallery, but the Party Organizer manages the specific event. For questions regarding how the photos will be used, shared, or distributed beyond this 30-day window, please contact the event organizer directly.</p>
+      </div>
+    </div>
   </div>
 
   <!-- Name prompt modal — shown on first visit or when "change" is clicked -->
