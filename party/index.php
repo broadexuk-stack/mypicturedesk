@@ -206,6 +206,11 @@ header('Referrer-Policy: same-origin');
     </div>
   </div>
 
+  <p class="privacy-notice">
+    By uploading, you agree that your photos will be visible in a public gallery and will be deleted after 30 days.
+    <button type="button" id="btn-privacy" class="privacy-link">About &amp; Privacy</button>
+  </p>
+
   <!-- Pass CSRF token and config to JS -->
   <script nonce="<?= $nonce ?>">
     window.PARTY_CONFIG = {
@@ -216,10 +221,5 @@ header('Referrer-Policy: same-origin');
     };
   </script>
   <script src="assets/app.js"></script>
-
-  <p class="privacy-notice">
-    By uploading, you agree that your photos will be visible in a public gallery and will be deleted after 30 days.
-    <button type="button" id="btn-privacy" class="privacy-link">About &amp; Privacy</button>
-  </p>
 </body>
 </html>
