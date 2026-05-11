@@ -241,6 +241,18 @@ function thumb_url(array $p): string {
 
     /* Card fade-out on action */
     .photo-card.removing { opacity: 0; transform: scale(0.9); transition: all 0.3s ease; pointer-events: none; }
+
+    /* New card pop-in */
+    @keyframes card-pop { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+    .photo-card.card-new { animation: card-pop 0.35s ease; }
+
+    /* Poll status dot */
+    .poll-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #27ae60; display: inline-block; margin-left: 6px;
+      transition: background 0.3s;
+    }
+    .poll-dot.error { background: #e74c3c; }
   </style>
 </head>
 <body>
@@ -280,6 +292,9 @@ function thumb_url(array $p): string {
     <div class="stat-item">
       📸 Total <strong><?= $counts['total'] ?></strong>
     </div>
+    <div class="stat-item" title="Live — updates every 10 s">
+      <span class="poll-dot" id="poll-dot"></span>
+    </div>
   </div>
   <a class="signout" href="index.php?logout=<?= urlencode($csrf) ?>">Sign out</a>
 </div>
@@ -294,28 +309,28 @@ function thumb_url(array $p): string {
     <?php endif; ?>
   </div>
 
-  <?php if (empty($pending)): ?>
-    <p class="empty-msg">No photos waiting for review.</p>
-  <?php else: ?>
-  <div class="photo-grid" role="list">
-    <?php foreach ($pending as $p): ?>
-    <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem">
-      <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
-           alt="Pending photo uploaded <?= htmlspecialchars($p['upload_timestamp']) ?>"
-           loading="lazy"
-           onerror="this.style.display='none'">
-      <div class="card-meta">
-        <time><?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?></time>
-        IP: <?= htmlspecialchars($p['ip_display']) ?>
+  <div class="photo-grid" id="pending-grid" role="list">
+    <?php if (empty($pending)): ?>
+      <p class="empty-msg">No photos waiting for review.</p>
+    <?php else: ?>
+      <?php foreach ($pending as $p): ?>
+      <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem">
+        <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
+             alt="Pending photo"
+             loading="lazy"
+             onerror="this.style.display='none'">
+        <div class="card-meta">
+          <time><?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?></time>
+          IP: <?= htmlspecialchars($p['ip_display']) ?>
+        </div>
+        <div class="card-actions">
+          <button class="btn-approve" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="approve" data-section="pending" aria-label="Approve">✅</button>
+          <button class="btn-remove"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove"  data-section="pending" aria-label="Move to wastebasket">🗑️</button>
+        </div>
       </div>
-      <div class="card-actions">
-        <button class="btn-approve" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="approve" data-section="pending" aria-label="Approve">✅</button>
-        <button class="btn-remove"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove"  data-section="pending" aria-label="Move to wastebasket">🗑️</button>
-      </div>
-    </div>
-    <?php endforeach; ?>
+      <?php endforeach; ?>
+    <?php endif; ?>
   </div>
-  <?php endif; ?>
 
   <hr class="section-divider">
 
@@ -325,27 +340,27 @@ function thumb_url(array $p): string {
     <span style="color:#4a3580;font-weight:400;text-transform:none;letter-spacing:0;font-size:0.85rem;">(<?= $counts['approved'] ?>)</span>
   </div>
 
-  <?php if (empty($approved)): ?>
-    <p class="empty-msg">No approved photos yet.</p>
-  <?php else: ?>
-  <div class="photo-grid" role="list">
-    <?php foreach ($approved as $p): ?>
-    <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem">
-      <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
-           alt="Approved photo"
-           loading="lazy"
-           onerror="this.style.display='none'">
-      <div class="card-meta">
-        <time><?= htmlspecialchars(date('d M Y H:i', strtotime($p['approved_at'] ?? $p['upload_timestamp']))) ?></time>
-        IP: <?= htmlspecialchars($p['ip_display']) ?>
+  <div class="photo-grid" id="approved-grid" role="list">
+    <?php if (empty($approved)): ?>
+      <p class="empty-msg">No approved photos yet.</p>
+    <?php else: ?>
+      <?php foreach ($approved as $p): ?>
+      <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem">
+        <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
+             alt="Approved photo"
+             loading="lazy"
+             onerror="this.style.display='none'">
+        <div class="card-meta">
+          <time><?= htmlspecialchars(date('d M Y H:i', strtotime($p['approved_at'] ?? $p['upload_timestamp']))) ?></time>
+          IP: <?= htmlspecialchars($p['ip_display']) ?>
+        </div>
+        <div class="card-actions">
+          <button class="btn-remove" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove" data-section="approved" aria-label="Move to wastebasket">🗑️ Remove</button>
+        </div>
       </div>
-      <div class="card-actions">
-        <button class="btn-remove" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove" data-section="approved" aria-label="Move to wastebasket">🗑️ Remove</button>
-      </div>
-    </div>
-    <?php endforeach; ?>
+      <?php endforeach; ?>
+    <?php endif; ?>
   </div>
-  <?php endif; ?>
 
   <hr class="section-divider">
 
@@ -394,13 +409,145 @@ function thumb_url(array $p): string {
   'use strict';
   const CSRF = <?= json_encode($csrf) ?>;
 
+  // ── Helpers ─────────────────────────────────────────────────
   function adjStat(id, delta) {
     const el = document.getElementById(id);
     if (!el) return;
     el.textContent = Math.max(0, (parseInt(el.textContent, 10) || 0) + delta);
   }
 
-  // Empty Wastebasket button
+  function setStat(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function outputExt(ext) {
+    const l = (ext || '').toLowerCase();
+    return (l === 'heic' || l === 'heif') ? 'jpg' : l;
+  }
+
+  function thumbUrl(p) {
+    if (p.status === 'pending' || (p.status === 'removed' && !p.approved_at)) {
+      return 'thumb.php?uuid=' + encodeURIComponent(p.uuid);
+    }
+    return '../gallery/thumbs/' + p.uuid + '.' + outputExt(p.original_extension);
+  }
+
+  function fmtDate(ts) {
+    if (!ts) return '';
+    const d = new Date(ts.replace(' ', 'T'));
+    return d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+      + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+  }
+
+  function buildCard(p, section) {
+    const div = document.createElement('div');
+    div.className = 'photo-card card-new';
+    div.id = 'card-' + p.uuid;
+    div.setAttribute('role', 'listitem');
+    setTimeout(() => div.classList.remove('card-new'), 400);
+
+    const displayTs = (section === 'approved' && p.approved_at) ? p.approved_at : p.upload_timestamp;
+    let actions = '';
+    if (section === 'pending') {
+      actions = `<button class="btn-approve" data-uuid="${escHtml(p.uuid)}" data-action="approve" data-section="pending" aria-label="Approve">✅</button>`
+              + `<button class="btn-remove"  data-uuid="${escHtml(p.uuid)}" data-action="remove"  data-section="pending" aria-label="Move to wastebasket">🗑️</button>`;
+    } else if (section === 'approved') {
+      actions = `<button class="btn-remove" data-uuid="${escHtml(p.uuid)}" data-action="remove" data-section="approved" aria-label="Move to wastebasket">🗑️ Remove</button>`;
+    } else {
+      actions = `<button class="btn-restore" data-uuid="${escHtml(p.uuid)}" data-action="restore" data-section="removed" aria-label="Restore to gallery">↩️ Restore</button>`
+              + `<button class="btn-reject"  data-uuid="${escHtml(p.uuid)}" data-action="reject"  data-section="removed" aria-label="Delete permanently">✕</button>`;
+    }
+
+    div.innerHTML = `<img src="${escHtml(thumbUrl(p))}" alt="${section} photo" loading="lazy" onerror="this.style.display='none'">`
+      + `<div class="card-meta"><time>${escHtml(fmtDate(displayTs))}</time>IP: ${escHtml(p.ip_display)}</div>`
+      + `<div class="card-actions">${actions}</div>`;
+    return div;
+  }
+
+  function reconcileGrid(gridId, photos, section, emptyText) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+
+    const incoming = new Map(photos.map(p => [p.uuid, p]));
+    const existing = new Set();
+
+    // Remove cards no longer in this section (acted on elsewhere)
+    grid.querySelectorAll('.photo-card').forEach(card => {
+      const uuid = card.id.replace('card-', '');
+      existing.add(uuid);
+      if (!incoming.has(uuid) && !card.classList.contains('removing')) {
+        card.classList.add('removing');
+        setTimeout(() => card.remove(), 320);
+      }
+    });
+
+    // Add new cards (prepend so newest stays at top for pending)
+    const toAdd = photos.filter(p => !existing.has(p.uuid));
+    toAdd.forEach(p => {
+      const card = buildCard(p, section);
+      const firstCard = grid.querySelector('.photo-card');
+      if (firstCard) grid.insertBefore(card, firstCard);
+      else grid.appendChild(card);
+    });
+
+    // Toggle empty message
+    const visibleCards = grid.querySelectorAll('.photo-card:not(.removing)').length;
+    let emptyEl = grid.querySelector('.empty-msg');
+    if (visibleCards === 0 && toAdd.length === 0) {
+      if (!emptyEl) {
+        emptyEl = document.createElement('p');
+        emptyEl.className = 'empty-msg';
+        emptyEl.textContent = emptyText;
+        grid.appendChild(emptyEl);
+      }
+    } else if (emptyEl) {
+      emptyEl.remove();
+    }
+  }
+
+  // ── Polling ──────────────────────────────────────────────────
+  const dot = document.getElementById('poll-dot');
+
+  function poll() {
+    fetch('poll.php', { cache: 'no-store' })
+      .then(r => {
+        if (r.status === 401) { location.reload(); return null; }
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(data => {
+        if (!data || !data.ok) return;
+        if (dot) { dot.classList.remove('error'); }
+
+        setStat('stat-pending',  data.counts.pending);
+        setStat('stat-approved', data.counts.approved);
+        setStat('stat-removed',  data.counts.removed);
+
+        // Highlight pending stat when > 0
+        const pendingStat = document.querySelector('.stat-item.has-pending, .stat-item:first-child');
+        if (pendingStat) pendingStat.classList.toggle('has-pending', data.counts.pending > 0);
+
+        reconcileGrid('pending-grid',    data.pending,  'pending',  'No photos waiting for review.');
+        reconcileGrid('approved-grid',   data.approved, 'approved', 'No approved photos yet.');
+        reconcileGrid('wastebasket-grid',data.removed,  'removed',  'Wastebasket is empty.');
+
+        // Sync purge button state
+        const purgeBtn = document.getElementById('btn-purge-all');
+        if (purgeBtn) purgeBtn.disabled = data.counts.removed === 0;
+      })
+      .catch(() => { if (dot) dot.classList.add('error'); });
+  }
+
+  setInterval(poll, 10000);
+
+  // ── Action handler ───────────────────────────────────────────
   const purgeBtn = document.getElementById('btn-purge-all');
   if (purgeBtn) {
     purgeBtn.addEventListener('click', function () {
@@ -416,10 +563,10 @@ function thumb_url(array $p): string {
         if (data.ok) {
           const grid = document.getElementById('wastebasket-grid');
           if (grid) grid.innerHTML = '<p class="empty-msg">Wastebasket is empty.</p>';
-          document.getElementById('stat-removed').textContent = '0';
+          setStat('stat-removed', '0');
         } else {
           alert('Error: ' + (data.error || 'Unknown error'));
-          purgeBtn.disabled = false;
+          purgeBtn.disabled = data.counts && data.counts.removed === 0;
         }
       })
       .catch(() => {

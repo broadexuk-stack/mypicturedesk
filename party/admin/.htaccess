@@ -3,6 +3,6 @@
 Options -Indexes
 
 # Allow only these two entry points; deny everything else
-<FilesMatch "^(?!index\.php$|moderate\.php$|thumb\.php$)">
+<FilesMatch "^(?!index\.php$|moderate\.php$|thumb\.php$|poll\.php$)">
     Require all denied
 </FilesMatch>
