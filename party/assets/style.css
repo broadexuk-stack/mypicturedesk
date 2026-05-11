@@ -551,18 +551,20 @@ a:hover { color: var(--clr-gold-dark); }
   left: 0;
   right: 0;
   z-index: 50;
-  font-size: 0.62rem;
-  color: #4a3d6b;
+  font-size: 0.55rem;
+  color: #7b6aaa;
   text-align: center;
-  padding: 5px 12px 6px;
-  background: rgba(10, 5, 30, 0.7);
+  padding: 4px 12px 5px;
+  background: rgba(10, 5, 30, 0.75);
   line-height: 1.4;
 }
 
 .privacy-link {
+  -webkit-appearance: none;
+  appearance: none;
   background: none;
   border: none;
-  color: var(--clr-text-muted);
+  color: inherit;
   font-size: inherit;
   font-family: inherit;
   cursor: pointer;
@@ -571,7 +573,7 @@ a:hover { color: var(--clr-gold-dark); }
   text-underline-offset: 2px;
 }
 
-.privacy-link:hover { color: var(--clr-text); }
+.privacy-link:hover { color: var(--clr-text-muted); }
 
 .privacy-modal {
   position: fixed;
