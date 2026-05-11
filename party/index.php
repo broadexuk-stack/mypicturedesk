@@ -151,17 +151,6 @@ header('Referrer-Policy: same-origin');
     <img id="lightbox-img" src="" alt="Full size photo" class="lightbox-img">
   </div>
 
-  <!-- Pass CSRF token and config to JS -->
-  <script nonce="<?= $nonce ?>">
-    window.PARTY_CONFIG = {
-      csrfToken:   <?= json_encode($csrf) ?>,
-      uploadUrl:   'upload.php',
-      galleryUrl:  'gallery.php?json=1',
-      refreshMs:   30000
-    };
-  </script>
-  <script src="assets/app.js"></script>
-
   <!-- Name prompt modal — shown on first visit or when "change" is clicked -->
   <div id="name-modal" class="name-modal" hidden role="dialog" aria-modal="true" aria-labelledby="name-modal-title">
     <div class="name-modal-card">
@@ -175,5 +164,16 @@ header('Referrer-Policy: same-origin');
       <button type="button" id="btn-name-skip" class="name-skip">Stay anonymous</button>
     </div>
   </div>
+
+  <!-- Pass CSRF token and config to JS -->
+  <script nonce="<?= $nonce ?>">
+    window.PARTY_CONFIG = {
+      csrfToken:   <?= json_encode($csrf) ?>,
+      uploadUrl:   'upload.php',
+      galleryUrl:  'gallery.php?json=1',
+      refreshMs:   30000
+    };
+  </script>
+  <script src="assets/app.js"></script>
 </body>
 </html>
