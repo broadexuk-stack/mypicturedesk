@@ -546,34 +546,14 @@ a:hover { color: var(--clr-gold-dark); }
 
 /* ── Privacy notice & modal ──────────────────────────────────── */
 .privacy-notice {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  font-size: 0.55rem;
-  color: #7b6aaa;
+  margin: 0 auto 28px;
+  font-size: 0.75rem;
+  color: var(--clr-text-muted);
   text-align: center;
-  padding: 4px 12px 5px;
-  background: rgba(10, 5, 30, 0.75);
-  line-height: 1.4;
+  line-height: 1.5;
+  max-width: 340px;
+  padding: 0 20px;
 }
-
-.privacy-link {
-  -webkit-appearance: none;
-  appearance: none;
-  background: none;
-  border: none;
-  color: inherit;
-  font-size: inherit;
-  font-family: inherit;
-  cursor: pointer;
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.privacy-link:hover { color: var(--clr-text-muted); }
 
 .privacy-modal {
   position: fixed;

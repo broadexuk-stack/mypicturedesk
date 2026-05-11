@@ -144,6 +144,11 @@ header('Referrer-Policy: same-origin');
         <p class="gallery-empty" id="gallery-empty">Loading photos…</p>
       </div>
     </section>
+
+    <p class="privacy-notice">
+      By uploading, you agree that your photos will be visible in a public gallery and will be deleted after 30 days.
+      <button type="button" id="btn-privacy" class="name-change-btn">About &amp; Privacy</button>
+    </p>
   </main>
 
   <!-- ── Lightbox ───────────────────────────────────── -->
@@ -205,11 +210,6 @@ header('Referrer-Policy: same-origin');
       <button type="button" id="btn-name-skip" class="name-skip">Stay anonymous</button>
     </div>
   </div>
-
-  <p class="privacy-notice">
-    By uploading, you agree that your photos will be visible in a public gallery and will be deleted after 30 days.
-    <button type="button" id="btn-privacy" class="privacy-link">About &amp; Privacy</button>
-  </p>
 
   <!-- Pass CSRF token and config to JS -->
   <script nonce="<?= $nonce ?>">
