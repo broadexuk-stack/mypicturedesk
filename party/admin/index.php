@@ -586,6 +586,10 @@ function thumb_url(array $p): string {
     const card    = document.getElementById('card-' + uuid);
     if (!uuid || !card) return;
 
+    if (action === 'reject' && section === 'removed') {
+      if (!confirm('Permanently delete this photo? This cannot be undone.')) return;
+    }
+
     card.classList.add('removing');
 
     fetch('moderate.php', {
