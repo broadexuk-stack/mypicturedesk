@@ -57,7 +57,6 @@
   function resetToCamera() {
     clearCountdown();
     selectedFile = null;
-    // Reset both inputs so the same file can be re-selected
     cameraInput.value  = '';
     libraryInput.value = '';
     showState('camera');

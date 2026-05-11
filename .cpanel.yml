@@ -1,26 +1,26 @@
 ---
+# Repo: https://github.com/broadexuk-stack/mypicturedesk
+# Each task runs in its own shell, so variables don't persist between lines.
+# All paths are hardcoded for reliability.
+
 deployment:
   tasks:
-    # ── Set your cPanel username below ──────────────────────────
-    - export DEPLOYPATH=/home/gqsoav7aer3y/public_html/party
+    # Ensure writable directories exist
+    - /bin/mkdir -p /home/gqsoav7aer3y/public_html/party/quarantine/thumbs
+    - /bin/mkdir -p /home/gqsoav7aer3y/public_html/party/gallery/thumbs
+    - /bin/mkdir -p /home/gqsoav7aer3y/public_html/party/data
 
-    # ── Ensure writable directories exist ───────────────────────
-    - /bin/mkdir -p $DEPLOYPATH/quarantine/thumbs
-    - /bin/mkdir -p $DEPLOYPATH/gallery/thumbs
-    - /bin/mkdir -p $DEPLOYPATH/data
+    # Copy files from the repo to the webroot, skipping config.php so live
+    # credentials are never overwritten by a git pull.
+    - /usr/bin/rsync -rlp --exclude='config.php' party/ /home/gqsoav7aer3y/public_html/party/
 
-    # ── Deploy files, excluding config.php ──────────────────────
-    # rsync copies everything from the party/ folder into the live
-    # directory, skipping config.php so your live credentials are
-    # never overwritten by a git pull.
-    # Repo: https://github.com/broadexuk-stack/mypicturedesk
-    - /usr/bin/rsync -rlp --exclude='config.php' party/ $DEPLOYPATH/
+    # Set standard permissions on everything
+    - /bin/find /home/gqsoav7aer3y/public_html/party -type d -exec chmod 755 {} \;
+    - /bin/find /home/gqsoav7aer3y/public_html/party -type f -exec chmod 644 {} \;
 
-    # ── Fix permissions ─────────────────────────────────────────
-    - /bin/find $DEPLOYPATH -type d -exec chmod 755 {} \;
-    - /bin/find $DEPLOYPATH -type f -exec chmod 644 {} \;
-    - /bin/chmod 755 $DEPLOYPATH/quarantine
-    - /bin/chmod 755 $DEPLOYPATH/quarantine/thumbs
-    - /bin/chmod 755 $DEPLOYPATH/gallery
-    - /bin/chmod 755 $DEPLOYPATH/gallery/thumbs
-    - /bin/chmod 755 $DEPLOYPATH/data
+    # Ensure writable dirs stay writable after the find/chmod pass
+    - /bin/chmod 755 /home/gqsoav7aer3y/public_html/party/quarantine
+    - /bin/chmod 755 /home/gqsoav7aer3y/public_html/party/quarantine/thumbs
+    - /bin/chmod 755 /home/gqsoav7aer3y/public_html/party/gallery
+    - /bin/chmod 755 /home/gqsoav7aer3y/public_html/party/gallery/thumbs
+    - /bin/chmod 755 /home/gqsoav7aer3y/public_html/party/data
