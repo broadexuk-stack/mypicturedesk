@@ -149,7 +149,7 @@ if ($notify !== '') {
              . "<li><strong>IP (partial):</strong> $ip_disp</li>"
              . "<li><strong>Time:</strong> " . date('Y-m-d H:i:s') . " UTC</li>"
              . "</ul>"
-             . "<p><a href='" . BASE_URL . "/party/admin/'>Review in admin panel</a></p>";
+             . "<p><a href='" . BASE_URL . "/party/admin/index.php'>Review in admin panel</a></p>";
     mpd_send_email($notify, $subject, $body);
 }
 

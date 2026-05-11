@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $body      = "<p>Your party gallery has been created.</p>"
                                . "<ul><li><strong>Party name:</strong> $name</li>"
                                . "<li><strong>Guest URL:</strong> <a href='$guest_url'>$guest_url</a></li>"
-                               . "<li><strong>Admin panel:</strong> <a href='" . BASE_URL . "/party/admin/'>Log in to moderate photos</a></li></ul>";
+                               . "<li><strong>Admin panel:</strong> <a href='" . BASE_URL . "/party/admin/index.php'>Log in to moderate photos</a></li></ul>";
                     mpd_send_email($org['email'], $subject, $body);
                 }
                 $success = "Party '$name' created with slug '$slug'. Directories provisioned.";
