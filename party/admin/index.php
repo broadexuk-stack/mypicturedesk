@@ -91,7 +91,8 @@ if ($logged_in) {
 $csrf = $_SESSION['admin_csrf'];
 
 function thumb_url(array $p): string {
-    if ($p['status'] === 'pending') {
+    // Photos that were never approved have their thumb only in quarantine/thumbs/
+    if ($p['status'] === 'pending' || ($p['status'] === 'removed' && empty($p['approved_at']))) {
         return 'thumb.php?uuid=' . urlencode($p['uuid']);
     }
     $ext = output_extension($p['original_extension']);
@@ -309,7 +310,7 @@ function thumb_url(array $p): string {
       </div>
       <div class="card-actions">
         <button class="btn-approve" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="approve" data-section="pending" aria-label="Approve">✅</button>
-        <button class="btn-reject"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="reject"  data-section="pending" aria-label="Reject">🗑️</button>
+        <button class="btn-remove"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove"  data-section="pending" aria-label="Move to wastebasket">🗑️</button>
       </div>
     </div>
     <?php endforeach; ?>
@@ -454,11 +455,10 @@ function thumb_url(array $p): string {
             adjStat('stat-pending', -1);
             adjStat('stat-approved', 1);
           } else if (action === 'reject') {
-            adjStat(section === 'removed' ? 'stat-removed' : 'stat-pending', -1);
+            adjStat('stat-removed', -1);
           } else if (action === 'remove') {
-            adjStat('stat-approved', -1);
+            adjStat(section === 'pending' ? 'stat-pending' : 'stat-approved', -1);
             adjStat('stat-removed', 1);
-            // re-enable purge button if wastebasket now has items
             if (purgeBtn) purgeBtn.disabled = false;
           } else if (action === 'restore') {
             adjStat('stat-removed', -1);
