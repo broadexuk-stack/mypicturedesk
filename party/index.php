@@ -143,12 +143,12 @@ header('Referrer-Policy: same-origin');
       <div id="gallery-grid" class="gallery-grid" role="list" aria-live="polite" aria-label="Party photos">
         <p class="gallery-empty" id="gallery-empty">Loading photos…</p>
       </div>
-    </section>
 
-    <p class="privacy-notice">
-      By uploading, you agree that your photos will be visible in a public gallery and will be deleted after 30 days.
-      <button type="button" id="btn-privacy" class="name-change-btn">About &amp; Privacy</button>
-    </p>
+      <p class="privacy-notice">
+        By uploading, you agree that your photos will be visible in a public gallery and will be deleted after 30 days.<br>
+        <button type="button" id="btn-privacy" class="name-change-btn">About &amp; Privacy</button>
+      </p>
+    </section>
   </main>
 
   <!-- ── Lightbox ───────────────────────────────────── -->

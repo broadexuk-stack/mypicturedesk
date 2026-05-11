@@ -546,13 +546,12 @@ a:hover { color: var(--clr-gold-dark); }
 
 /* ── Privacy notice & modal ──────────────────────────────────── */
 .privacy-notice {
-  margin: 0 auto 28px;
-  font-size: 0.75rem;
+  margin-top: 28px;
+  font-size: 0.78rem;
   color: var(--clr-text-muted);
   text-align: center;
-  line-height: 1.5;
-  max-width: 340px;
-  padding: 0 20px;
+  line-height: 1.7;
+  padding: 0 20px 12px;
 }
 
 .privacy-modal {
