@@ -480,9 +480,7 @@ if ($sa_pages > 1):
   <!-- ── Pending ── -->
   <div class="section-heading">
     ⏳ Awaiting Approval
-    <?php if (($counts['pending'] ?? 0) > 0): ?>
-      <span class="count-pill"><?= $counts['pending'] ?></span>
-    <?php endif; ?>
+    <span class="count-pill" id="pending-pill"<?= ($counts['pending'] ?? 0) === 0 ? ' hidden' : '' ?>><?= $counts['pending'] ?? 0 ?></span>
   </div>
 
   <div class="photo-grid" id="pending-grid" role="list">
@@ -727,6 +725,19 @@ if ($sa_pages > 1):
     if (el) el.textContent = val;
   }
 
+  function syncPendingUI(n) {
+    setStat('stat-pending', n);
+    const pill = document.getElementById('pending-pill');
+    if (pill) { pill.textContent = n; pill.hidden = n <= 0; }
+    document.querySelector('.stat-item')?.classList.toggle('has-pending', n > 0);
+  }
+
+  function adjPending(delta) {
+    const el = document.getElementById('stat-pending');
+    if (!el) return;
+    syncPendingUI(Math.max(0, (parseInt(el.textContent, 10) || 0) + delta));
+  }
+
   function syncRemovedUI(n) {
     setStat('stat-removed', n);
     const pill = document.getElementById('waste-pill');
@@ -862,10 +873,9 @@ if ($sa_pages > 1):
       .then(data => {
         if (!data || !data.ok) return;
         if (dot) dot.classList.remove('error');
-        setStat('stat-pending',  data.counts.pending);
+        syncPendingUI(data.counts.pending);
         setStat('stat-approved', data.counts.approved);
         syncRemovedUI(data.counts.removed);
-        document.querySelector('.stat-item')?.classList.toggle('has-pending', data.counts.pending > 0);
         reconcileGrid('pending-grid',    data.pending,  'pending',  'No photos waiting for review.');
         reconcileGrid('approved-grid',   data.approved, 'approved', 'No approved photos yet.');
         reconcileGrid('wastebasket-grid',data.removed,  'removed',  'Wastebasket is empty.');
@@ -929,9 +939,9 @@ if ($sa_pages > 1):
       if (data.ok) {
         setTimeout(() => {
           card.remove();
-          if (action === 'approve')       { adjStat('stat-pending', -1); adjStat('stat-approved', 1); }
+          if (action === 'approve')       { adjPending(-1); adjStat('stat-approved', 1); }
           else if (action === 'reject')   { adjRemoved(-1); }
-          else if (action === 'remove')   { adjStat(section === 'pending' ? 'stat-pending' : 'stat-approved', -1); adjRemoved(1); if (purgeBtn) purgeBtn.disabled = false; }
+          else if (action === 'remove')   { if (section === 'pending') { adjPending(-1); } else { adjStat('stat-approved', -1); } adjRemoved(1); if (purgeBtn) purgeBtn.disabled = false; }
           else if (action === 'restore')  { adjRemoved(-1); adjStat('stat-approved', 1); }
         }, 320);
       } else {
