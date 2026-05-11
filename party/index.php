@@ -49,7 +49,7 @@ $party_info = $party_ok && !empty($party['party_info'])
   <title><?= $party_name ?></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" nonce="<?= $nonce ?>">
-  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/style.css?v=<?= filemtime(__DIR__ . '/assets/style.css') ?>">
 </head>
 <body>
 
@@ -65,7 +65,7 @@ $party_info = $party_ok && !empty($party['party_info'])
     </div>
   </header>
   <main id="main">
-    <section class="camera-section" style="">
+    <section class="camera-section">
       <div id="upload-ui">
         <div class="result-ui result-error" style="display:block">
           <div class="result-emoji" aria-hidden="true">🔍</div>
