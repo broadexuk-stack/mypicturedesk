@@ -368,9 +368,7 @@ function thumb_url(array $p): string {
   <div class="wastebasket-bar">
     <div class="section-heading" style="margin-bottom:0;">
       🗑️ Wastebasket
-      <?php if ($counts['removed'] > 0): ?>
-        <span class="count-pill"><?= $counts['removed'] ?></span>
-      <?php endif; ?>
+      <span class="count-pill" id="waste-pill"<?= $counts['removed'] === 0 ? ' hidden' : '' ?>><?= $counts['removed'] ?></span>
     </div>
     <button class="btn-purge" id="btn-purge-all"
             <?= empty($removed) ? 'disabled' : '' ?>
@@ -419,6 +417,18 @@ function thumb_url(array $p): string {
   function setStat(id, val) {
     const el = document.getElementById(id);
     if (el) el.textContent = val;
+  }
+
+  function syncRemovedUI(n) {
+    setStat('stat-removed', n);
+    const pill = document.getElementById('waste-pill');
+    if (pill) { pill.textContent = n; pill.hidden = n <= 0; }
+  }
+
+  function adjRemoved(delta) {
+    const el = document.getElementById('stat-removed');
+    if (!el) return;
+    syncRemovedUI(Math.max(0, (parseInt(el.textContent, 10) || 0) + delta));
   }
 
   function escHtml(s) {
@@ -528,7 +538,7 @@ function thumb_url(array $p): string {
 
         setStat('stat-pending',  data.counts.pending);
         setStat('stat-approved', data.counts.approved);
-        setStat('stat-removed',  data.counts.removed);
+        syncRemovedUI(data.counts.removed);
 
         // Highlight pending stat when > 0
         const pendingStat = document.querySelector('.stat-item.has-pending, .stat-item:first-child');
@@ -563,7 +573,7 @@ function thumb_url(array $p): string {
         if (data.ok) {
           const grid = document.getElementById('wastebasket-grid');
           if (grid) grid.innerHTML = '<p class="empty-msg">Wastebasket is empty.</p>';
-          setStat('stat-removed', '0');
+          syncRemovedUI(0);
         } else {
           alert('Error: ' + (data.error || 'Unknown error'));
           purgeBtn.disabled = data.counts && data.counts.removed === 0;
@@ -606,13 +616,13 @@ function thumb_url(array $p): string {
             adjStat('stat-pending', -1);
             adjStat('stat-approved', 1);
           } else if (action === 'reject') {
-            adjStat('stat-removed', -1);
+            adjRemoved(-1);
           } else if (action === 'remove') {
             adjStat(section === 'pending' ? 'stat-pending' : 'stat-approved', -1);
-            adjStat('stat-removed', 1);
+            adjRemoved(1);
             if (purgeBtn) purgeBtn.disabled = false;
           } else if (action === 'restore') {
-            adjStat('stat-removed', -1);
+            adjRemoved(-1);
             adjStat('stat-approved', 1);
           }
         }, 320);
