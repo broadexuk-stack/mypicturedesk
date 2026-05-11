@@ -57,20 +57,24 @@ function db_insert_photo(
     string $uuid,
     string $extension,
     string $ip_hash,
-    string $ip_display
+    string $ip_display,
+    string $uploaded_by = ''
 ): bool {
+    $name = $uploaded_by !== '' ? $uploaded_by : null;
+
     if (USE_DATABASE) {
         try {
             $pdo  = db_pdo();
             $stmt = $pdo->prepare(
-                'INSERT INTO photos (uuid, original_extension, ip_hash, ip_display)
-                 VALUES (:uuid, :ext, :ip_hash, :ip_display)'
+                'INSERT INTO photos (uuid, original_extension, ip_hash, ip_display, uploaded_by)
+                 VALUES (:uuid, :ext, :ip_hash, :ip_display, :uploaded_by)'
             );
             return $stmt->execute([
-                ':uuid'       => $uuid,
-                ':ext'        => $extension,
-                ':ip_hash'    => $ip_hash,
-                ':ip_display' => $ip_display,
+                ':uuid'        => $uuid,
+                ':ext'         => $extension,
+                ':ip_hash'     => $ip_hash,
+                ':ip_display'  => $ip_display,
+                ':uploaded_by' => $name,
             ]);
         } catch (PDOException $e) {
             error_log('db_insert_photo: ' . $e->getMessage());
@@ -85,6 +89,7 @@ function db_insert_photo(
         'upload_timestamp'   => date('Y-m-d H:i:s'),
         'ip_hash'            => $ip_hash,
         'ip_display'         => $ip_display,
+        'uploaded_by'        => $name,
         'status'             => 'pending',
         'approved_at'        => null,
         'rejected_at'        => null,

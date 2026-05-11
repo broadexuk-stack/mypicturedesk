@@ -138,8 +138,14 @@ if (!generate_quarantine_thumb($quarantine_path, $qThumbPath, $detected_ext)) {
     chmod($qThumbPath, 0644);
 }
 
+// ── Sanitise optional uploader name ────────────────────────
+$raw_name    = $_POST['uploaded_by'] ?? '';
+$uploaded_by = mb_substr(trim($raw_name), 0, 100, 'UTF-8');
+// Strip control characters and angle brackets
+$uploaded_by = preg_replace('/[\x00-\x1f\x7f<>]/', '', $uploaded_by);
+
 // ── Write to database / flat file ──────────────────────────
-if (!db_insert_photo($uuid, $detected_ext, $ip_hash, $ip_disp)) {
+if (!db_insert_photo($uuid, $detected_ext, $ip_hash, $ip_disp, $uploaded_by)) {
     // Non-fatal: photo is saved, just not recorded. Log and continue.
     error_log("upload.php: db_insert_photo failed for uuid=$uuid");
 }
@@ -153,6 +159,7 @@ if (NOTIFY_EMAIL !== '') {
     $body    = "A new photo has been uploaded and is waiting for your approval.\n\n"
              . "UUID:      $uuid\n"
              . "Type:      $detected_ext\n"
+             . "Name:      " . ($uploaded_by ?: '(anonymous)') . "\n"
              . "IP (partial): $ip_disp\n"
              . "Time:      " . date('Y-m-d H:i:s') . " UTC\n\n"
              . "Review it here: " . BASE_URL . "/admin/\n";

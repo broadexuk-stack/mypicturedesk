@@ -34,6 +34,7 @@ $slim = fn(array $p) => [
     'upload_timestamp'   => $p['upload_timestamp'],
     'approved_at'        => $p['approved_at'] ?? null,
     'ip_display'         => $p['ip_display'],
+    'uploaded_by'        => $p['uploaded_by'] ?? null,
     'status'             => $p['status'],
 ];
 

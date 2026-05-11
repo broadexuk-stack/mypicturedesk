@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS `photos` (
   `ip_hash`            VARCHAR(64)   NOT NULL,
   -- Partial IP shown in admin UI (e.g. "*.2.3.4") — no first octet
   `ip_display`         VARCHAR(50)   NOT NULL,
+  -- Optional display name submitted by the guest at upload time
+  `uploaded_by`        VARCHAR(100)           DEFAULT NULL,
   `status`             ENUM('pending','approved','rejected','removed') NOT NULL DEFAULT 'pending',
   `approved_at`        DATETIME               DEFAULT NULL,
   `rejected_at`        DATETIME               DEFAULT NULL,
@@ -53,3 +55,9 @@ CREATE TABLE IF NOT EXISTS `upload_attempts` (
 -- Adds the 'removed' wastebasket status to the photos table.
 -- -------------------------------------------------------
 -- ALTER TABLE photos MODIFY COLUMN status ENUM('pending','approved','rejected','removed') NOT NULL DEFAULT 'pending';
+
+-- -------------------------------------------------------
+-- Migration v1.2 — run once on existing installations
+-- Adds the guest display name column.
+-- -------------------------------------------------------
+-- ALTER TABLE photos ADD COLUMN uploaded_by VARCHAR(100) DEFAULT NULL;

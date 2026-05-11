@@ -223,6 +223,7 @@ function full_url(array $p): string {
     .btn-restore:hover { background: #1a5276; }
 
     .empty-msg { color: #4a3580; font-size: 0.95rem; padding: 16px 0; }
+    .card-name { display: block; color: #f5a623; font-weight: 700; margin-bottom: 2px; }
 
     /* Wastebasket section */
     .wastebasket-bar {
@@ -346,12 +347,16 @@ function full_url(array $p): string {
            data-full-url="<?= htmlspecialchars(full_url($p)) ?>"
            data-timestamp="<?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?>"
            data-ip="<?= htmlspecialchars($p['ip_display']) ?>"
+           data-name="<?= htmlspecialchars($p['uploaded_by'] ?? '') ?>"
            data-section-label="Awaiting Approval">
         <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
              alt="Pending photo"
              loading="lazy"
              onerror="this.style.display='none'">
         <div class="card-meta">
+          <?php if (!empty($p['uploaded_by'])): ?>
+            <span class="card-name">👤 <?= htmlspecialchars($p['uploaded_by']) ?></span>
+          <?php endif; ?>
           <time><?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?></time>
           IP: <?= htmlspecialchars($p['ip_display']) ?>
         </div>
@@ -381,12 +386,16 @@ function full_url(array $p): string {
            data-full-url="<?= htmlspecialchars(full_url($p)) ?>"
            data-timestamp="<?= htmlspecialchars(date('d M Y H:i', strtotime($p['approved_at'] ?? $p['upload_timestamp']))) ?>"
            data-ip="<?= htmlspecialchars($p['ip_display']) ?>"
+           data-name="<?= htmlspecialchars($p['uploaded_by'] ?? '') ?>"
            data-section-label="In the Gallery">
         <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
              alt="Approved photo"
              loading="lazy"
              onerror="this.style.display='none'">
         <div class="card-meta">
+          <?php if (!empty($p['uploaded_by'])): ?>
+            <span class="card-name">👤 <?= htmlspecialchars($p['uploaded_by']) ?></span>
+          <?php endif; ?>
           <time><?= htmlspecialchars(date('d M Y H:i', strtotime($p['approved_at'] ?? $p['upload_timestamp']))) ?></time>
           IP: <?= htmlspecialchars($p['ip_display']) ?>
         </div>
@@ -422,12 +431,16 @@ function full_url(array $p): string {
          data-full-url="<?= htmlspecialchars(full_url($p)) ?>"
          data-timestamp="<?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?>"
          data-ip="<?= htmlspecialchars($p['ip_display']) ?>"
+         data-name="<?= htmlspecialchars($p['uploaded_by'] ?? '') ?>"
          data-section-label="Wastebasket">
       <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
            alt="Wastebasket photo"
            loading="lazy"
            onerror="this.style.display='none'">
       <div class="card-meta">
+        <?php if (!empty($p['uploaded_by'])): ?>
+          <span class="card-name">👤 <?= htmlspecialchars($p['uploaded_by']) ?></span>
+        <?php endif; ?>
         <time><?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?></time>
         IP: <?= htmlspecialchars($p['ip_display']) ?>
       </div>
@@ -450,6 +463,7 @@ function full_url(array $p): string {
   <figure class="lb-figure">
     <img id="lb-img" src="" alt="Full size photo" class="lb-img">
     <figcaption class="lb-meta">
+      <div class="lb-meta-row" id="lb-name-row"><span class="lb-label">Name</span><span id="lb-name"></span></div>
       <div class="lb-meta-row"><span class="lb-label">Uploaded</span><span id="lb-time"></span></div>
       <div class="lb-meta-row"><span class="lb-label">IP</span><span id="lb-ip"></span></div>
       <div class="lb-meta-row"><span class="lb-label">Section</span><span id="lb-section"></span></div>
@@ -532,6 +546,7 @@ function full_url(array $p): string {
     div.dataset.fullUrl      = fullUrl(p);
     div.dataset.timestamp    = fmtDate(p.upload_timestamp);
     div.dataset.ip           = p.ip_display;
+    div.dataset.name         = p.uploaded_by || '';
     div.dataset.sectionLabel = sectionLabels[section] || section;
 
     let actions = '';
@@ -545,8 +560,10 @@ function full_url(array $p): string {
               + `<button class="btn-reject"  data-uuid="${escHtml(p.uuid)}" data-action="reject"  data-section="removed" aria-label="Delete permanently">✕</button>`;
     }
 
+    const nameLine = p.uploaded_by
+      ? `<span class="card-name">👤 ${escHtml(p.uploaded_by)}</span>` : '';
     div.innerHTML = `<img src="${escHtml(thumbUrl(p))}" alt="${section} photo" loading="lazy" onerror="this.style.display='none'">`
-      + `<div class="card-meta"><time>${escHtml(fmtDate(displayTs))}</time>IP: ${escHtml(p.ip_display)}</div>`
+      + `<div class="card-meta">${nameLine}<time>${escHtml(fmtDate(displayTs))}</time>IP: ${escHtml(p.ip_display)}</div>`
       + `<div class="card-actions">${actions}</div>`;
     return div;
   }
@@ -717,6 +734,8 @@ function full_url(array $p): string {
   const lbPrev    = document.getElementById('lb-prev');
   const lbNext    = document.getElementById('lb-next');
   const lbCounter = document.getElementById('lb-counter');
+  const lbName    = document.getElementById('lb-name');
+  const lbNameRow = document.getElementById('lb-name-row');
 
   let lbCards = [];
   let lbIdx   = 0;
@@ -732,6 +751,9 @@ function full_url(array $p): string {
     lbTime.textContent     = card.dataset.timestamp || '';
     lbIp.textContent       = card.dataset.ip || '';
     lbSection.textContent  = card.dataset.sectionLabel || '';
+    const name = card.dataset.name || '';
+    if (lbName)    lbName.textContent = name;
+    if (lbNameRow) lbNameRow.hidden   = !name;
     lbPrev.disabled        = lbIdx === 0;
     lbNext.disabled        = lbIdx === lbCards.length - 1;
     lbCounter.textContent  = (lbIdx + 1) + ' / ' + lbCards.length;

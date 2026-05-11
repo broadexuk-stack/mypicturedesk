@@ -85,6 +85,11 @@ header('Referrer-Policy: same-origin');
         <p class="library-hint">
           or <label for="library-input" class="link-label" role="button" tabindex="0">choose an existing photo</label>
         </p>
+
+        <p class="name-byline" id="name-byline" hidden>
+          Uploading as <strong id="name-byline-text"></strong> &middot;
+          <button type="button" id="btn-change-name" class="link-label" style="background:none;border:none;padding:0;font-size:inherit;min-height:auto;">change</button>
+        </p>
       </div>
 
       <!-- ── Preview state (hidden until photo selected) ── -->
@@ -156,5 +161,19 @@ header('Referrer-Policy: same-origin');
     };
   </script>
   <script src="assets/app.js"></script>
+
+  <!-- Name prompt modal — shown on first visit or when "change" is clicked -->
+  <div id="name-modal" class="name-modal" hidden role="dialog" aria-modal="true" aria-labelledby="name-modal-title">
+    <div class="name-modal-card">
+      <p class="name-modal-emoji" aria-hidden="true">👋</p>
+      <h2 class="name-modal-title" id="name-modal-title">What's your name?</h2>
+      <p class="name-modal-sub">So we know who took which photo!</p>
+      <input type="text" id="name-input" class="name-input"
+             placeholder="Your name" maxlength="50"
+             autocomplete="given-name" autocorrect="off">
+      <button type="button" id="btn-name-submit" class="btn btn-confirm">Let's go! 🎉</button>
+      <button type="button" id="btn-name-skip" class="name-skip">Stay anonymous</button>
+    </div>
+  </div>
 </body>
 </html>

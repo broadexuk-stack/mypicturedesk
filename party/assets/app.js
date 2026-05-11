@@ -43,6 +43,75 @@
   // Timer for success countdown
   let countdownInterval = null;
 
+  // ── Name management ──────────────────────────────────────────
+  const NAME_KEY   = 'party_uploader_name';
+  const NAME_TS    = 'party_uploader_ts';
+  const NAME_TTL   = 12 * 60 * 60 * 1000; // 12 hours in ms
+
+  function storedName() {
+    try {
+      const ts = parseInt(localStorage.getItem(NAME_TS) || '0', 10);
+      if (Date.now() - ts > NAME_TTL) return '';
+      return localStorage.getItem(NAME_KEY) || '';
+    } catch { return ''; }
+  }
+
+  function saveName(name) {
+    try {
+      localStorage.setItem(NAME_KEY, name);
+      localStorage.setItem(NAME_TS,  String(Date.now()));
+    } catch {}
+  }
+
+  let currentName = storedName();
+
+  const nameModal      = document.getElementById('name-modal');
+  const nameInput      = document.getElementById('name-input');
+  const btnNameSubmit  = document.getElementById('btn-name-submit');
+  const btnNameSkip    = document.getElementById('btn-name-skip');
+  const nameByline     = document.getElementById('name-byline');
+  const nameBylineText = document.getElementById('name-byline-text');
+  const btnChangeName  = document.getElementById('btn-change-name');
+
+  function updateByline() {
+    if (currentName) {
+      nameBylineText.textContent = currentName;
+      nameByline.hidden = false;
+    } else {
+      nameByline.hidden = true;
+    }
+  }
+
+  function openNameModal() {
+    nameInput.value = currentName;
+    nameModal.hidden = false;
+    // Focus after transition so iOS keyboard doesn't immediately dismiss
+    setTimeout(() => nameInput.focus(), 80);
+  }
+
+  function closeNameModal() {
+    nameModal.hidden = true;
+  }
+
+  function submitName() {
+    const name = nameInput.value.trim().substring(0, 50);
+    currentName = name;
+    if (name) saveName(name);
+    closeNameModal();
+    updateByline();
+  }
+
+  btnNameSubmit.addEventListener('click', submitName);
+  btnNameSkip.addEventListener('click', () => { currentName = ''; closeNameModal(); updateByline(); });
+  btnChangeName.addEventListener('click', openNameModal);
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitName(); });
+
+  // Show modal on first visit (after a short delay so page renders first)
+  if (!currentName) {
+    setTimeout(openNameModal, 350);
+  }
+  updateByline();
+
   // ── State management ─────────────────────────────────────────
 
   function showState(state) {
@@ -121,8 +190,9 @@
     progressFill.style.width = '0%';
 
     const fd = new FormData();
-    fd.append('photo',      file);
-    fd.append('csrf_token', csrfToken);
+    fd.append('photo',       file);
+    fd.append('csrf_token',  csrfToken);
+    fd.append('uploaded_by', currentName);
 
     const xhr = new XMLHttpRequest();
 
