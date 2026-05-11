@@ -1,8 +1,8 @@
-# admin/.htaccess — Only index.php and moderate.php should be reachable.
+# admin/.htaccess — Whitelist only known admin entry points.
 
 Options -Indexes
 
-# Allow only these two entry points; deny everything else
-<FilesMatch "^(?!index\.php$|moderate\.php$|thumb\.php$|poll\.php$|download_gallery\.php$)">
+# Allow only these PHP files; deny everything else (including setup.php once deleted)
+<FilesMatch "^(?!index\.php$|moderate\.php$|thumb\.php$|poll\.php$|download_gallery\.php$|setup\.php$|setpassword\.php$|parties\.php$|organizer_settings\.php$|qrcode\.php$|superadmin_settings\.php$)">
     Require all denied
 </FilesMatch>

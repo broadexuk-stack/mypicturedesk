@@ -2,6 +2,14 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/db.php';
+
+// ── Resolve party ────────────────────────────────────────────
+$slug  = preg_replace('/[^a-z0-9\-_]/', '', strtolower(trim($_GET['id'] ?? '')));
+$party = $slug !== '' ? mpd_get_party_by_slug($slug) : false;
+
+// Determine whether to show the error page
+$party_ok = $party !== false && (bool)$party['is_active'];
 
 // ── Session & CSRF ──────────────────────────────────────────
 ini_set('session.cookie_httponly', '1');
@@ -13,7 +21,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 $csrf = $_SESSION['csrf_token'];
 
-// ── Security headers ────────────────────────────────────────
+// ── Security headers ─────────────────────────────────────────
 $nonce = base64_encode(random_bytes(16));
 header("Content-Security-Policy: default-src 'self'; "
      . "img-src 'self' data: blob:; "
@@ -26,6 +34,11 @@ header("Content-Security-Policy: default-src 'self'; "
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: same-origin');
+
+$party_name = $party_ok ? htmlspecialchars($party['party_name']) : 'MyPictureDesk';
+$party_info = $party_ok && !empty($party['party_info'])
+    ? htmlspecialchars($party['party_info'])
+    : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -33,34 +46,53 @@ header('Referrer-Policy: same-origin');
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#2d1b69">
-  <title><?= htmlspecialchars(PARTY_NAME) ?></title>
+  <title><?= $party_name ?></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" nonce="<?= $nonce ?>">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
-  <span class="version-badge" aria-hidden="true">v1.3</span>
+  <span class="version-badge" aria-hidden="true">v2.0</span>
 
-  <!-- ── Header ─────────────────────────────────────── -->
+<?php if (!$party_ok): ?>
+  <!-- ── Error: no party found / inactive ─────────────────── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <span class="header-emoji" aria-hidden="true">📸</span>
+      <h1>MyPictureDesk</h1>
+      <span class="header-emoji" aria-hidden="true">📸</span>
+    </div>
+  </header>
+  <main id="main">
+    <section class="camera-section" style="">
+      <div id="upload-ui">
+        <div class="result-ui result-error" style="display:block">
+          <div class="result-emoji" aria-hidden="true">🔍</div>
+          <p class="result-text">Party not found</p>
+          <p class="result-sub">
+            This gallery link isn&rsquo;t active.<br>
+            Please scan the QR code again or speak to your event organizer.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<?php else: ?>
+  <!-- ── Header ─────────────────────────────────────────────── -->
   <header class="site-header">
     <div class="header-inner">
       <span class="header-emoji" aria-hidden="true">🎉</span>
-      <h1><?= htmlspecialchars(PARTY_NAME) ?></h1>
+      <h1><?= $party_name ?></h1>
       <span class="header-emoji" aria-hidden="true">📸</span>
     </div>
   </header>
 
-  <!-- ── Camera section ─────────────────────────────── -->
+  <!-- ── Camera section ─────────────────────────────────────── -->
   <main id="main">
     <section class="camera-section" id="camera-section">
 
-      <!-- Hidden file inputs — never visible, triggered by labels -->
-      <!--
-        capture="environment" = ask the OS for the rear camera.
-        On Android/Chrome this opens the camera app directly.
-        On iOS/Safari it shows a sheet with "Take Photo" as the first option.
-      -->
       <input type="file"
              id="camera-input"
              accept="image/*"
@@ -68,7 +100,6 @@ header('Referrer-Policy: same-origin');
              aria-label="Take a photo with your camera"
              hidden>
 
-      <!-- Secondary input WITHOUT capture — opens photo library -->
       <input type="file"
              id="library-input"
              accept="image/*"
@@ -82,6 +113,10 @@ header('Referrer-Policy: same-origin');
           <span class="btn-camera-text">Take a Photo!</span>
         </label>
 
+        <?php if ($party_info !== ''): ?>
+        <p class="party-info-text"><?= $party_info ?></p>
+        <?php endif; ?>
+
         <p class="library-hint">
           or <label for="library-input" class="link-label" role="button" tabindex="0">choose an existing photo</label>
         </p>
@@ -90,10 +125,9 @@ header('Referrer-Policy: same-origin');
           Uploading as <strong id="name-byline-text"></strong> &middot;
           <button type="button" id="btn-change-name" class="name-change-btn">change</button>
         </p>
-
       </div>
 
-      <!-- ── Preview state (hidden until photo selected) ── -->
+      <!-- ── Preview state ── -->
       <div id="preview-ui" hidden>
         <div class="preview-wrap">
           <img id="preview-img" src="" alt="Your photo preview" class="preview-img">
@@ -108,7 +142,6 @@ header('Referrer-Policy: same-origin');
           </button>
         </div>
 
-        <!-- Progress bar (hidden until upload starts) -->
         <div id="progress-wrap" hidden>
           <div class="progress-bar" role="progressbar" aria-label="Uploading…">
             <div class="progress-fill" id="progress-fill"></div>
@@ -134,7 +167,7 @@ header('Referrer-Policy: same-origin');
 
     </section>
 
-    <!-- ── Public gallery ─────────────────────────────── -->
+    <!-- ── Public gallery ─────────────────────────────────── -->
     <section class="gallery-section" id="gallery-section" aria-label="Approved photo gallery">
       <h2 class="gallery-heading">
         <span aria-hidden="true">🖼️</span> The Gallery
@@ -151,7 +184,7 @@ header('Referrer-Policy: same-origin');
     </section>
   </main>
 
-  <!-- ── Lightbox ───────────────────────────────────── -->
+  <!-- ── Lightbox ─────────────────────────────────────────── -->
   <div id="lightbox" class="lightbox" hidden role="dialog" aria-modal="true" aria-label="Photo lightbox">
     <button class="lightbox-close" id="lightbox-close" aria-label="Close photo">&times;</button>
     <button class="lightbox-prev" id="lightbox-prev" aria-label="Previous photo" disabled>&#8249;</button>
@@ -197,7 +230,7 @@ header('Referrer-Policy: same-origin');
     </div>
   </div>
 
-  <!-- Name prompt modal — shown on first visit or when "change" is clicked -->
+  <!-- Name prompt modal -->
   <div id="name-modal" class="name-modal" hidden role="dialog" aria-modal="true" aria-labelledby="name-modal-title">
     <div class="name-modal-card">
       <p class="name-modal-emoji" aria-hidden="true">👋</p>
@@ -215,11 +248,14 @@ header('Referrer-Policy: same-origin');
   <script nonce="<?= $nonce ?>">
     window.PARTY_CONFIG = {
       csrfToken:   <?= json_encode($csrf) ?>,
+      partySlug:   <?= json_encode($slug) ?>,
       uploadUrl:   'upload.php',
-      galleryUrl:  'gallery.php?json=1',
+      galleryUrl:  'gallery.php?json=1&id=' + <?= json_encode($slug) ?>,
       refreshMs:   30000
     };
   </script>
   <script src="assets/app.js"></script>
+
+<?php endif; ?>
 </body>
 </html>

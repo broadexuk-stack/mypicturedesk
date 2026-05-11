@@ -14,7 +14,7 @@
   'use strict';
 
   // ── Config injected by index.php ─────────────────────────────
-  const { csrfToken, uploadUrl, galleryUrl, refreshMs } = window.PARTY_CONFIG;
+  const { csrfToken, partySlug, uploadUrl, galleryUrl, refreshMs } = window.PARTY_CONFIG;
 
   // ── Element refs ─────────────────────────────────────────────
   const cameraInput   = document.getElementById('camera-input');
@@ -206,6 +206,7 @@
     const fd = new FormData();
     fd.append('photo',       file);
     fd.append('csrf_token',  csrfToken);
+    fd.append('party_slug',  partySlug);
     fd.append('uploaded_by', currentName);
 
     const xhr = new XMLHttpRequest();

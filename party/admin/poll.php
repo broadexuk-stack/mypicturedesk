@@ -2,9 +2,9 @@
 declare(strict_types=1);
 
 // ============================================================
-// admin/poll.php — Lightweight JSON endpoint for dynamic updates.
-// Returns current counts + all photos by section.
-// Requires authenticated admin session; GET only.
+// admin/poll.php — JSON endpoint for organizer moderation page.
+// Returns current counts + full photo lists by section.
+// Organizer scope only (superadmin uses server-rendered pages).
 // ============================================================
 
 require_once dirname(__DIR__) . '/config.php';
@@ -17,17 +17,24 @@ header('X-Content-Type-Options: nosniff');
 ini_set('session.cookie_httponly', '1');
 session_start();
 
-if (empty($_SESSION['admin_logged_in'])) {
+if (empty($_SESSION['mpd_user_id'])) {
     http_response_code(401);
     exit(json_encode(['ok' => false]));
 }
 
-$counts   = db_counts();
-$pending  = db_get_photos('pending');
-$approved = db_get_photos('approved');
-$removed  = db_get_photos('removed');
+$role     = $_SESSION['mpd_role'] ?? '';
+$party_id = (int)($_SESSION['mpd_party_id'] ?? 0);
 
-// Trim to only the fields the client needs
+if ($party_id === 0) {
+    http_response_code(403);
+    exit(json_encode(['ok' => false, 'error' => 'No party assigned.']));
+}
+
+$counts   = db_count_photos_by_status($party_id);
+$pending  = db_get_photos('pending',  $party_id);
+$approved = db_get_photos('approved', $party_id);
+$removed  = db_get_photos('removed',  $party_id);
+
 $slim = fn(array $p) => [
     'uuid'               => $p['uuid'],
     'original_extension' => $p['original_extension'],

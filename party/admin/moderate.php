@@ -2,9 +2,9 @@
 declare(strict_types=1);
 
 // ============================================================
-// admin/moderate.php — AJAX endpoint for all photo actions.
+// admin/moderate.php — AJAX endpoint for photo moderation.
 // Actions: approve | reject | remove | restore | purge_all
-// Always returns JSON. Requires authenticated admin session.
+// Requires authenticated organizer or superadmin session.
 // ============================================================
 
 require_once dirname(__DIR__) . '/config.php';
@@ -14,124 +14,141 @@ require_once dirname(__DIR__) . '/includes/image.php';
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 
-// ── Session ─────────────────────────────────────────────────
+function json_err(int $code, string $msg): never {
+    http_response_code($code);
+    exit(json_encode(['ok' => false, 'error' => $msg]));
+}
+
 ini_set('session.cookie_httponly', '1');
 session_start();
 
-if (empty($_SESSION['admin_logged_in'])) {
-    http_response_code(401);
-    exit(json_encode(['ok' => false, 'error' => 'Not authenticated.']));
+if (empty($_SESSION['mpd_user_id'])) {
+    json_err(401, 'Not authenticated.');
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    exit(json_encode(['ok' => false, 'error' => 'Method not allowed.']));
+    json_err(405, 'Method not allowed.');
 }
 
 // ── CSRF ─────────────────────────────────────────────────────
-$client_csrf  = $_POST['csrf_token'] ?? '';
-$session_csrf = $_SESSION['admin_csrf'] ?? '';
-if (!$session_csrf || !hash_equals($session_csrf, $client_csrf)) {
-    http_response_code(403);
-    exit(json_encode(['ok' => false, 'error' => 'CSRF validation failed.']));
+if (!hash_equals($_SESSION['admin_csrf'] ?? '', $_POST['csrf_token'] ?? '')) {
+    json_err(403, 'CSRF validation failed.');
 }
 
+// ── Resolve party scope ───────────────────────────────────────
+$role     = $_SESSION['mpd_role'] ?? '';
+$party_id = (int)($_SESSION['mpd_party_id'] ?? 0);
+
+// Superadmin can operate on any party by passing a uuid that belongs to it;
+// we resolve party_id from the photo record after UUID lookup.
+if ($role !== 'organizer' && $role !== 'superadmin') {
+    json_err(403, 'Insufficient permissions.');
+}
+if ($role === 'organizer' && $party_id === 0) {
+    json_err(403, 'No party assigned to this account.');
+}
+
+// ── Action validation ────────────────────────────────────────
 $action = $_POST['action'] ?? '';
-
 if (!in_array($action, ['approve', 'reject', 'remove', 'restore', 'purge_all'], true)) {
-    http_response_code(400);
-    exit(json_encode(['ok' => false, 'error' => 'Invalid action.']));
+    json_err(400, 'Invalid action.');
 }
 
-// ── purge_all — no UUID needed, handled before UUID validation ─
+// ── purge_all ────────────────────────────────────────────────
 if ($action === 'purge_all') {
-    $removed = db_get_photos('removed');
-    $count   = 0;
+    $removed = db_get_photos('removed', $party_id);
+    $party   = mpd_get_party_by_id($party_id);
+    $dirs    = $party ? mpd_party_dirs($party['slug']) : null;
+
     foreach ($removed as $p) {
         $dskExt = output_extension($p['original_extension']);
-        @unlink(GALLERY_DIR . '/' . $p['uuid'] . '.' . $dskExt);
-        @unlink(THUMBS_DIR  . '/' . $p['uuid'] . '.' . $dskExt);
-        db_update_photo_status($p['uuid'], 'rejected');
-        $count++;
+        if ($dirs) {
+            @unlink($dirs['gallery']        . '/' . $p['uuid'] . '.' . $dskExt);
+            @unlink($dirs['gallery_thumbs'] . '/' . $p['uuid'] . '.' . $dskExt);
+        }
+        db_set_photo_status($p['uuid'], $party_id, 'rejected');
     }
-    exit(json_encode(['ok' => true, 'action' => 'purged', 'count' => $count]));
+    exit(json_encode(['ok' => true, 'action' => 'purged', 'count' => count($removed)]));
 }
 
-// ── UUID validation (required for all other actions) ─────────
+// ── UUID validation ───────────────────────────────────────────
 $uuid = $_POST['uuid'] ?? '';
-if (!preg_match('/^[0-9a-f]{32}$/', $uuid)) {
-    http_response_code(400);
-    exit(json_encode(['ok' => false, 'error' => 'Invalid photo ID.']));
+if (!preg_match('/^[0-9a-f]{32}$/', $uuid)) json_err(400, 'Invalid photo ID.');
+
+// For superadmin, resolve party_id from the photo itself
+if ($role === 'superadmin') {
+    // We need to find the photo across all parties
+    $pdo = db_pdo();
+    $st  = $pdo->prepare('SELECT * FROM photos WHERE uuid = :uuid LIMIT 1');
+    $st->execute([':uuid' => $uuid]);
+    $photo = $st->fetch();
+    if (!$photo) json_err(404, 'Photo not found.');
+    $party_id = (int)$photo['party_id'];
+} else {
+    $photo = db_get_photo_by_uuid($uuid, $party_id);
+    if (!$photo) json_err(404, 'Photo not found.');
 }
 
-$photo = db_get_photo($uuid);
-if ($photo === null) {
-    http_response_code(404);
-    exit(json_encode(['ok' => false, 'error' => 'Photo not found.']));
-}
+$party = mpd_get_party_by_id($party_id);
+if (!$party) json_err(500, 'Party not found.');
+$dirs = mpd_party_dirs($party['slug']);
 
-// ── approve — move from quarantine to gallery ─────────────────
+// ── approve ───────────────────────────────────────────────────
 if ($action === 'approve') {
     $ext      = $photo['original_extension'];
     $disk_ext = output_extension($ext);
-    $qPath    = QUARANTINE_DIR . '/' . $uuid . '.' . $ext;
-    $gPath    = GALLERY_DIR    . '/' . $uuid . '.' . $disk_ext;
-    $tPath    = THUMBS_DIR     . '/' . $uuid . '.' . $disk_ext;
+    $qPath    = $dirs['quarantine']   . '/' . $uuid . '.' . $ext;
+    $gPath    = $dirs['gallery']      . '/' . $uuid . '.' . $disk_ext;
+    $tPath    = $dirs['gallery_thumbs'] . '/' . $uuid . '.' . $disk_ext;
 
-    if (!file_exists($qPath)) {
-        http_response_code(404);
-        exit(json_encode(['ok' => false, 'error' => 'Quarantine file not found.']));
-    }
-
-    foreach ([GALLERY_DIR, THUMBS_DIR] as $dir) {
-        if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
-            http_response_code(500);
-            exit(json_encode(['ok' => false, 'error' => 'Server storage error.']));
-        }
-    }
+    if (!file_exists($qPath)) json_err(404, 'Quarantine file not found.');
 
     $processed = process_image($qPath, $gPath, $tPath, $ext);
     if (!$processed) {
-        error_log("moderate.php: process_image failed for $uuid — copying raw file");
+        error_log("moderate.php: process_image failed for $uuid — copying raw");
         if (!@copy($qPath, $gPath) || !@copy($qPath, $tPath)) {
-            http_response_code(500);
-            exit(json_encode(['ok' => false, 'error' => 'Could not move photo to gallery.']));
+            json_err(500, 'Could not move photo to gallery.');
         }
     }
 
     @chmod($gPath, 0644);
     @chmod($tPath, 0644);
     @unlink($qPath);
-    @unlink(QUARANTINE_DIR . '/thumbs/' . $uuid . '.' . $disk_ext);
+    @unlink($dirs['quarantine_thumbs'] . '/' . $uuid . '.' . $disk_ext);
+    // Also try jpg thumb (HEIC originals generate jpg thumbs)
+    if ($disk_ext !== 'jpg') {
+        @unlink($dirs['quarantine_thumbs'] . '/' . $uuid . '.jpg');
+    }
 
-    db_update_photo_status($uuid, 'approved');
+    db_set_photo_status($uuid, $party_id, 'approved');
     exit(json_encode(['ok' => true, 'action' => 'approved']));
 }
 
-// ── reject — permanently delete a pending/quarantined photo ───
+// ── reject ────────────────────────────────────────────────────
 if ($action === 'reject') {
     $ext    = $photo['original_extension'];
     $dskExt = output_extension($ext);
     foreach ([
-        QUARANTINE_DIR . '/' . $uuid . '.' . $ext,
-        QUARANTINE_DIR . '/thumbs/' . $uuid . '.' . $dskExt,
-        GALLERY_DIR    . '/' . $uuid . '.' . $dskExt,
-        THUMBS_DIR     . '/' . $uuid . '.' . $dskExt,
+        $dirs['quarantine']        . '/' . $uuid . '.' . $ext,
+        $dirs['quarantine_thumbs'] . '/' . $uuid . '.jpg',
+        $dirs['quarantine_thumbs'] . '/' . $uuid . '.' . $dskExt,
+        $dirs['gallery']           . '/' . $uuid . '.' . $dskExt,
+        $dirs['gallery_thumbs']    . '/' . $uuid . '.' . $dskExt,
     ] as $path) {
         if (file_exists($path)) @unlink($path);
     }
-    db_update_photo_status($uuid, 'rejected');
+    db_set_photo_status($uuid, $party_id, 'rejected');
     exit(json_encode(['ok' => true, 'action' => 'rejected']));
 }
 
-// ── remove — move approved photo to wastebasket (files kept) ──
+// ── remove ────────────────────────────────────────────────────
 if ($action === 'remove') {
-    db_update_photo_status($uuid, 'removed');
+    db_set_photo_status($uuid, $party_id, 'removed');
     exit(json_encode(['ok' => true, 'action' => 'removed']));
 }
 
-// ── restore — move wastebasket photo back to approved ─────────
+// ── restore ───────────────────────────────────────────────────
 if ($action === 'restore') {
-    db_update_photo_status($uuid, 'approved');
+    db_set_photo_status($uuid, $party_id, 'approved');
     exit(json_encode(['ok' => true, 'action' => 'restored']));
 }
