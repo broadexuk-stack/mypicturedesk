@@ -1,10 +1,6 @@
 <?php
 declare(strict_types=1);
 
-// ============================================================
-// admin/index.php — Login page + moderation panel.
-// ============================================================
-
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/includes/db.php';
 require_once dirname(__DIR__) . '/includes/image.php';
@@ -14,7 +10,6 @@ ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
 session_start();
 
-// Regenerate CSRF token for admin if not present
 if (empty($_SESSION['admin_csrf'])) {
     $_SESSION['admin_csrf'] = bin2hex(random_bytes(32));
 }
@@ -52,8 +47,7 @@ $error_msg = '';
 
 // ── Handle logout ───────────────────────────────────────────
 if ($logged_in && isset($_GET['logout'])) {
-    $tok = $_GET['logout'];
-    if (hash_equals($_SESSION['admin_csrf'], $tok)) {
+    if (hash_equals($_SESSION['admin_csrf'], $_GET['logout'])) {
         session_unset();
         session_destroy();
         header('Location: index.php');
@@ -63,13 +57,11 @@ if ($logged_in && isset($_GET['logout'])) {
 
 // ── Handle login POST ───────────────────────────────────────
 if (!$logged_in && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
-    // CSRF check
     $submitted_csrf = $_POST['csrf_token'] ?? '';
     if (!hash_equals($_SESSION['admin_csrf'], $submitted_csrf)) {
         $error_msg = 'Invalid request. Please try again.';
     } else {
         $pw = $_POST['password'] ?? '';
-        // password_verify is timing-safe
         if (password_verify($pw, ADMIN_PASSWORD_HASH)) {
             session_regenerate_id(true);
             $_SESSION['admin_logged_in']   = true;
@@ -78,46 +70,30 @@ if (!$logged_in && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['passwo
             header('Location: index.php');
             exit;
         } else {
-            // Generic message — no enumeration hint
             $error_msg = 'Login failed. Please try again.';
-            // Brief artificial delay to slow brute force
             usleep(500_000);
         }
     }
 }
 
-// ── Active tab ──────────────────────────────────────────────
-$tab = $_GET['tab'] ?? 'pending';
-if (!in_array($tab, ['pending', 'approved', 'dashboard'], true)) {
-    $tab = 'pending';
-}
-
-// ── Fetch data (only when logged in) ───────────────────────
+// ── Fetch data ──────────────────────────────────────────────
 $counts  = [];
-$photos  = [];
+$pending = [];
+$approved = [];
 if ($logged_in) {
-    $counts = db_counts();
-    if ($tab === 'pending') {
-        $photos = db_get_photos('pending');
-    } elseif ($tab === 'approved') {
-        $photos = db_get_photos('approved');
-    }
+    $counts   = db_counts();
+    $pending  = db_get_photos('pending');
+    $approved = db_get_photos('approved');
 }
 
-$csrf    = $_SESSION['admin_csrf'];
-$baseUrl = '../'; // relative URL back to the gallery/ folder
+$csrf = $_SESSION['admin_csrf'];
 
 function thumb_url(array $p): string {
     if ($p['status'] === 'pending') {
-        // Quarantine files are not directly accessible — proxy through thumb.php
         return 'thumb.php?uuid=' . urlencode($p['uuid']);
     }
     $ext = output_extension($p['original_extension']);
     return '../gallery/thumbs/' . $p['uuid'] . '.' . $ext;
-}
-function full_url(array $p): string {
-    $ext = output_extension($p['original_extension']);
-    return '../gallery/' . $p['uuid'] . '.' . $ext;
 }
 ?>
 <!DOCTYPE html>
@@ -142,40 +118,98 @@ function full_url(array $p): string {
     .btn-login:hover { background: #e6941a; }
     .login-error { background: #c0392b; color: #fff; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.95rem; }
 
-    /* ── Layout ── */
-    .admin-wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
-    .admin-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 24px; gap: 12px; flex-wrap: wrap; }
-    .admin-header h1 { font-size: 1.4rem; font-weight: 900; }
-    .admin-header a { color: #c9b8ff; font-size: 0.9rem; text-decoration: none; }
-    .admin-header a:hover { color: #f5a623; }
+    /* ── Stats bar ── */
+    .stats-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: 50px;
+      background: #160f35;
+      border-bottom: 1px solid #2d1b69;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      gap: 12px;
+    }
+    .stats-bar .stat-items {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #c9b8ff;
+      white-space: nowrap;
+    }
+    .stat-item strong {
+      color: #f5a623;
+      font-size: 1rem;
+      font-weight: 900;
+    }
+    .stat-item.has-pending strong { color: #e74c3c; }
+    .stats-bar .signout {
+      color: #c9b8ff;
+      font-size: 0.8rem;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .stats-bar .signout:hover { color: #f5a623; }
 
-    /* ── Tabs ── */
-    .tab-bar { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
-    .tab-btn { padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 0.95rem; color: #c9b8ff; background: #2d1b69; border: 2px solid transparent; }
-    .tab-btn.active, .tab-btn:hover { background: #f5a623; color: #1a1035; }
-    .badge { display: inline-block; background: #e74c3c; color: #fff; border-radius: 12px; padding: 1px 7px; font-size: 0.75rem; margin-left: 4px; }
+    /* ── Page header ── */
+    .page-header {
+      padding: 20px 20px 0;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .page-header h1 { font-size: 1.3rem; font-weight: 900; color: #f0ebff; }
 
-    /* ── Dashboard ── */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
-    .stat-card { background: #2d1b69; border-radius: 12px; padding: 20px; text-align: center; }
-    .stat-card .stat-num { font-size: 2.5rem; font-weight: 900; color: #f5a623; }
-    .stat-card .stat-label { font-size: 0.85rem; color: #c9b8ff; margin-top: 4px; }
+    /* ── Sections ── */
+    .admin-body { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    .section-heading {
+      font-size: 1rem;
+      font-weight: 900;
+      color: #c9b8ff;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-heading .count-pill {
+      background: #e74c3c;
+      color: #fff;
+      border-radius: 999px;
+      padding: 1px 8px;
+      font-size: 0.75rem;
+    }
+
+    .section-divider {
+      border: none;
+      border-top: 2px solid #2d1b69;
+      margin: 32px 0;
+    }
 
     /* ── Photo grid ── */
-    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
     .photo-card { background: #2d1b69; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
     .photo-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
-    .photo-card .card-meta { padding: 10px 12px; font-size: 0.8rem; color: #c9b8ff; flex: 1; }
-    .photo-card .card-meta time { display: block; margin-bottom: 4px; }
-    .photo-card .card-actions { display: flex; gap: 8px; padding: 10px 12px; }
-    .btn-approve { flex: 1; padding: 10px 0; background: #27ae60; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: inherit; }
+    .photo-card .card-meta { padding: 8px 10px; font-size: 0.75rem; color: #c9b8ff; flex: 1; }
+    .photo-card .card-meta time { display: block; margin-bottom: 2px; }
+    .photo-card .card-actions { display: flex; gap: 6px; padding: 8px 10px; }
+    .btn-approve { flex: 1; padding: 8px 0; background: #27ae60; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit; }
     .btn-approve:hover { background: #219150; }
-    .btn-reject  { flex: 1; padding: 10px 0; background: #e74c3c; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: inherit; }
+    .btn-reject  { flex: 1; padding: 8px 0; background: #e74c3c; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit; }
     .btn-reject:hover { background: #c0392b; }
-    .btn-remove  { flex: 1; padding: 10px 0; background: #7f8c8d; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: inherit; }
-    .btn-remove:hover { background: #636e72; }
+    .btn-remove  { flex: 1; padding: 8px 0; background: #4a3580; color: #c9b8ff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit; }
+    .btn-remove:hover { background: #5a4590; color: #fff; }
 
-    .empty-msg { color: #c9b8ff; padding: 32px; text-align: center; font-size: 1.1rem; }
+    .empty-msg { color: #4a3580; font-size: 0.95rem; padding: 16px 0; }
 
     /* Card fade-out on action */
     .photo-card.removing { opacity: 0; transform: scale(0.9); transition: all 0.3s ease; pointer-events: none; }
@@ -202,55 +236,41 @@ function full_url(array $p): string {
 
 <?php else: ?>
 <!-- ══════════════════ ADMIN PANEL ══════════════════ -->
-<div class="admin-wrap">
 
-  <div class="admin-header">
-    <h1>🛠️ <?= htmlspecialchars(PARTY_NAME) ?> — Admin</h1>
-    <a href="index.php?logout=<?= urlencode($csrf) ?>">Sign out</a>
-  </div>
-
-  <nav class="tab-bar" aria-label="Admin sections">
-    <a href="index.php?tab=dashboard" class="tab-btn <?= $tab === 'dashboard' ? 'active' : '' ?>">📊 Dashboard</a>
-    <a href="index.php?tab=pending"   class="tab-btn <?= $tab === 'pending'   ? 'active' : '' ?>">
-      ⏳ Pending
-      <?php if ($counts['pending'] > 0): ?>
-        <span class="badge"><?= $counts['pending'] ?></span>
-      <?php endif; ?>
-    </a>
-    <a href="index.php?tab=approved"  class="tab-btn <?= $tab === 'approved'  ? 'active' : '' ?>">✅ Approved (<?= $counts['approved'] ?>)</a>
-  </nav>
-
-  <!-- ── Dashboard tab ── -->
-  <?php if ($tab === 'dashboard'): ?>
-  <div class="stat-grid" role="region" aria-label="Statistics">
-    <div class="stat-card">
-      <div class="stat-num"><?= $counts['pending'] ?></div>
-      <div class="stat-label">Awaiting Review</div>
+<!-- Stats bar -->
+<div class="stats-bar" role="region" aria-label="Statistics">
+  <div class="stat-items">
+    <div class="stat-item <?= $counts['pending'] > 0 ? 'has-pending' : '' ?>">
+      ⏳ Pending <strong><?= $counts['pending'] ?></strong>
     </div>
-    <div class="stat-card">
-      <div class="stat-num"><?= $counts['approved'] ?></div>
-      <div class="stat-label">In Gallery</div>
+    <div class="stat-item">
+      ✅ Approved <strong><?= $counts['approved'] ?></strong>
     </div>
-    <div class="stat-card">
-      <div class="stat-num"><?= $counts['rejected_today'] ?></div>
-      <div class="stat-label">Rejected Today</div>
+    <div class="stat-item">
+      🗑️ Rejected today <strong><?= $counts['rejected_today'] ?></strong>
     </div>
-    <div class="stat-card">
-      <div class="stat-num"><?= $counts['total'] ?></div>
-      <div class="stat-label">Total Uploads</div>
+    <div class="stat-item">
+      📸 Total <strong><?= $counts['total'] ?></strong>
     </div>
   </div>
-  <p style="color:#c9b8ff;font-size:0.9rem;">
-    Switch to the <strong>Pending</strong> tab to review and approve photos.
-  </p>
+  <a class="signout" href="index.php?logout=<?= urlencode($csrf) ?>">Sign out</a>
+</div>
 
-  <!-- ── Pending tab ── -->
-  <?php elseif ($tab === 'pending'): ?>
-  <?php if (empty($photos)): ?>
-    <p class="empty-msg">🎉 No photos waiting for review.</p>
+<div class="admin-body">
+
+  <!-- ── Pending section ── -->
+  <div class="section-heading">
+    ⏳ Awaiting Approval
+    <?php if ($counts['pending'] > 0): ?>
+      <span class="count-pill"><?= $counts['pending'] ?></span>
+    <?php endif; ?>
+  </div>
+
+  <?php if (empty($pending)): ?>
+    <p class="empty-msg">No photos waiting for review.</p>
   <?php else: ?>
-  <div class="photo-grid" id="photo-grid" role="list">
-    <?php foreach ($photos as $p): ?>
+  <div class="photo-grid" role="list">
+    <?php foreach ($pending as $p): ?>
     <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem">
       <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
            alt="Pending photo uploaded <?= htmlspecialchars($p['upload_timestamp']) ?>"
@@ -261,31 +281,27 @@ function full_url(array $p): string {
         IP: <?= htmlspecialchars($p['ip_display']) ?>
       </div>
       <div class="card-actions">
-        <button class="btn-approve"
-                data-uuid="<?= htmlspecialchars($p['uuid']) ?>"
-                data-action="approve"
-                aria-label="Approve this photo">
-          ✅ Approve
-        </button>
-        <button class="btn-reject"
-                data-uuid="<?= htmlspecialchars($p['uuid']) ?>"
-                data-action="reject"
-                aria-label="Reject this photo">
-          🗑️ Reject
-        </button>
+        <button class="btn-approve" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="approve" aria-label="Approve">✅</button>
+        <button class="btn-reject"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="reject"  aria-label="Reject">🗑️</button>
       </div>
     </div>
     <?php endforeach; ?>
   </div>
   <?php endif; ?>
 
-  <!-- ── Approved tab ── -->
-  <?php elseif ($tab === 'approved'): ?>
-  <?php if (empty($photos)): ?>
+  <hr class="section-divider">
+
+  <!-- ── Approved section ── -->
+  <div class="section-heading">
+    ✅ In the Gallery
+    <span style="color:#4a3580;font-weight:400;text-transform:none;letter-spacing:0;font-size:0.85rem;">(<?= $counts['approved'] ?>)</span>
+  </div>
+
+  <?php if (empty($approved)): ?>
     <p class="empty-msg">No approved photos yet.</p>
   <?php else: ?>
-  <div class="photo-grid" id="photo-grid" role="list">
-    <?php foreach ($photos as $p): ?>
+  <div class="photo-grid" role="list">
+    <?php foreach ($approved as $p): ?>
     <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem">
       <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
            alt="Approved photo"
@@ -296,26 +312,19 @@ function full_url(array $p): string {
         IP: <?= htmlspecialchars($p['ip_display']) ?>
       </div>
       <div class="card-actions">
-        <button class="btn-remove"
-                data-uuid="<?= htmlspecialchars($p['uuid']) ?>"
-                data-action="reject"
-                aria-label="Remove this photo from the gallery">
-          🗑️ Remove
-        </button>
+        <button class="btn-remove" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="reject" aria-label="Remove">🗑️ Remove</button>
       </div>
     </div>
     <?php endforeach; ?>
   </div>
   <?php endif; ?>
-  <?php endif; ?>
 
-</div><!-- /admin-wrap -->
+</div><!-- /admin-body -->
 
 <script nonce="<?= $nonce ?>">
 (function () {
   'use strict';
-
-  const CSRF  = <?= json_encode($csrf) ?>;
+  const CSRF = <?= json_encode($csrf) ?>;
 
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('[data-action]');
@@ -326,7 +335,6 @@ function full_url(array $p): string {
     const card   = document.getElementById('card-' + uuid);
     if (!uuid || !card) return;
 
-    // Optimistic UI — fade card immediately
     card.classList.add('removing');
 
     fetch('moderate.php', {
@@ -337,7 +345,6 @@ function full_url(array $p): string {
     .then(r => r.json())
     .then(data => {
       if (data.ok) {
-        // Remove card from DOM after CSS transition
         setTimeout(() => card.remove(), 320);
       } else {
         card.classList.remove('removing');
@@ -351,7 +358,7 @@ function full_url(array $p): string {
   });
 })();
 </script>
-<?php endif; ?>
 
+<?php endif; ?>
 </body>
 </html>
