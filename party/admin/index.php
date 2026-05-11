@@ -238,7 +238,9 @@ function full_url(array $p): string {
     .btn-dl-photo { flex: 0 0 auto; padding: 8px 10px; background: #0f2d47; color: #7fb3e8; border: none; border-radius: 8px; font-size: 0.85rem; cursor: pointer; text-decoration: none; display: flex; align-items: center; line-height: 1; }
     .btn-dl-photo:hover { background: #163d5e; color: #a8cfee; }
     .approved-heading-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
-    .approved-heading-bar .section-heading { margin-bottom: 0; }
+    .approved-heading-bar .section-heading,
+    .wastebasket-bar .section-heading { margin-bottom: 0; }
+    .heading-count-sub { color:#4a3580; font-weight:400; text-transform:none; letter-spacing:0; font-size:0.85rem; }
     .btn-dl-gallery { padding: 7px 14px; background: #0f2d47; color: #7fb3e8; border: none; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; text-decoration: none; white-space: nowrap; }
     .btn-dl-gallery:hover { background: #163d5e; color: #a8cfee; }
     .btn-dl-gallery[aria-disabled="true"] { opacity: 0.35; pointer-events: none; }
@@ -394,7 +396,7 @@ function full_url(array $p): string {
   <div class="approved-heading-bar">
     <div class="section-heading">
       ✅ In the Gallery
-      <span style="color:#4a3580;font-weight:400;text-transform:none;letter-spacing:0;font-size:0.85rem;">(<?= $counts['approved'] ?>)</span>
+      <span class="heading-count-sub">(<?= $counts['approved'] ?>)</span>
     </div>
     <a href="download_gallery.php"
        class="btn-dl-gallery"
@@ -439,7 +441,7 @@ function full_url(array $p): string {
 
   <!-- ── Wastebasket section ── -->
   <div class="wastebasket-bar">
-    <div class="section-heading" style="margin-bottom:0;">
+    <div class="section-heading">
       🗑️ Wastebasket
       <span class="count-pill" id="waste-pill"<?= $counts['removed'] === 0 ? ' hidden' : '' ?>><?= $counts['removed'] ?></span>
     </div>

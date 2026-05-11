@@ -66,14 +66,14 @@ header('Referrer-Policy: same-origin');
              accept="image/*"
              capture="environment"
              aria-label="Take a photo with your camera"
-             style="display:none">
+             hidden>
 
       <!-- Secondary input WITHOUT capture — opens photo library -->
       <input type="file"
              id="library-input"
              accept="image/*"
              aria-label="Choose a photo from your library"
-             style="display:none">
+             hidden>
 
       <!-- ── Camera button (default state) ── -->
       <div id="upload-ui">
