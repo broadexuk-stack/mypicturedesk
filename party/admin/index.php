@@ -99,6 +99,15 @@ function thumb_url(array $p): string {
     return '../gallery/thumbs/' . $p['uuid'] . '.' . $ext;
 }
 
+function dl_filename(array $p): string {
+    $name = !empty($p['uploaded_by'])
+        ? preg_replace('/[^a-zA-Z0-9_-]/', '_', mb_substr($p['uploaded_by'], 0, 30)) . '_'
+        : 'photo_';
+    $ts   = date('Ymd_His', strtotime($p['upload_timestamp']));
+    $ext  = output_extension($p['original_extension']);
+    return $name . $ts . '.' . $ext;
+}
+
 function full_url(array $p): string {
     if ($p['status'] === 'pending' || ($p['status'] === 'removed' && empty($p['approved_at']))) {
         return 'thumb.php?uuid=' . urlencode($p['uuid']) . '&full=1';
@@ -224,6 +233,15 @@ function full_url(array $p): string {
 
     .empty-msg { color: #4a3580; font-size: 0.95rem; padding: 16px 0; }
     .card-name { display: block; color: #f5a623; font-weight: 700; margin-bottom: 2px; }
+
+    /* Download buttons */
+    .btn-dl-photo { flex: 0 0 auto; padding: 8px 10px; background: #0f2d47; color: #7fb3e8; border: none; border-radius: 8px; font-size: 0.85rem; cursor: pointer; text-decoration: none; display: flex; align-items: center; line-height: 1; }
+    .btn-dl-photo:hover { background: #163d5e; color: #a8cfee; }
+    .approved-heading-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+    .approved-heading-bar .section-heading { margin-bottom: 0; }
+    .btn-dl-gallery { padding: 7px 14px; background: #0f2d47; color: #7fb3e8; border: none; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; text-decoration: none; white-space: nowrap; }
+    .btn-dl-gallery:hover { background: #163d5e; color: #a8cfee; }
+    .btn-dl-gallery[aria-disabled="true"] { opacity: 0.35; pointer-events: none; }
 
     /* Wastebasket section */
     .wastebasket-bar {
@@ -363,6 +381,7 @@ function full_url(array $p): string {
         <div class="card-actions">
           <button class="btn-approve" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="approve" data-section="pending" aria-label="Approve">✅</button>
           <button class="btn-remove"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove"  data-section="pending" aria-label="Move to wastebasket">🗑️</button>
+          <a class="btn-dl-photo" href="<?= htmlspecialchars(full_url($p)) ?>" download="<?= htmlspecialchars(dl_filename($p)) ?>" aria-label="Download">⬇</a>
         </div>
       </div>
       <?php endforeach; ?>
@@ -372,9 +391,17 @@ function full_url(array $p): string {
   <hr class="section-divider">
 
   <!-- ── Approved section ── -->
-  <div class="section-heading">
-    ✅ In the Gallery
-    <span style="color:#4a3580;font-weight:400;text-transform:none;letter-spacing:0;font-size:0.85rem;">(<?= $counts['approved'] ?>)</span>
+  <div class="approved-heading-bar">
+    <div class="section-heading">
+      ✅ In the Gallery
+      <span style="color:#4a3580;font-weight:400;text-transform:none;letter-spacing:0;font-size:0.85rem;">(<?= $counts['approved'] ?>)</span>
+    </div>
+    <a href="download_gallery.php"
+       class="btn-dl-gallery"
+       <?= empty($approved) ? 'aria-disabled="true"' : '' ?>
+       aria-label="Download all gallery photos as ZIP">
+      ⬇ Download Gallery
+    </a>
   </div>
 
   <div class="photo-grid" id="approved-grid" role="list">
@@ -401,6 +428,7 @@ function full_url(array $p): string {
         </div>
         <div class="card-actions">
           <button class="btn-remove" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove" data-section="approved" aria-label="Move to wastebasket">🗑️ Remove</button>
+          <a class="btn-dl-photo" href="<?= htmlspecialchars(full_url($p)) ?>" download="<?= htmlspecialchars(dl_filename($p)) ?>" aria-label="Download">⬇</a>
         </div>
       </div>
       <?php endforeach; ?>
@@ -447,6 +475,7 @@ function full_url(array $p): string {
       <div class="card-actions">
         <button class="btn-restore" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="restore" data-section="removed" aria-label="Restore to gallery">↩️ Restore</button>
         <button class="btn-reject"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="reject"  data-section="removed" aria-label="Delete permanently">✕</button>
+        <a class="btn-dl-photo" href="<?= htmlspecialchars(full_url($p)) ?>" download="<?= htmlspecialchars(dl_filename($p)) ?>" aria-label="Download">⬇</a>
       </div>
     </div>
     <?php endforeach; ?>
@@ -526,6 +555,13 @@ function full_url(array $p): string {
     return '../gallery/' + p.uuid + '.' + outputExt(p.original_extension);
   }
 
+  function dlFilename(p) {
+    const raw  = (p.uploaded_by || '').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30);
+    const name = raw || 'photo';
+    const ts   = (p.upload_timestamp || '').replace(/[^0-9]/g, '').substring(0, 14);
+    return name + '_' + ts + '.' + outputExt(p.original_extension);
+  }
+
   function fmtDate(ts) {
     if (!ts) return '';
     const d = new Date(ts.replace(' ', 'T'));
@@ -550,14 +586,18 @@ function full_url(array $p): string {
     div.dataset.sectionLabel = sectionLabels[section] || section;
 
     let actions = '';
+    const dlLink = `<a class="btn-dl-photo" href="${escHtml(fullUrl(p))}" download="${escHtml(dlFilename(p))}" aria-label="Download">⬇</a>`;
     if (section === 'pending') {
       actions = `<button class="btn-approve" data-uuid="${escHtml(p.uuid)}" data-action="approve" data-section="pending" aria-label="Approve">✅</button>`
-              + `<button class="btn-remove"  data-uuid="${escHtml(p.uuid)}" data-action="remove"  data-section="pending" aria-label="Move to wastebasket">🗑️</button>`;
+              + `<button class="btn-remove"  data-uuid="${escHtml(p.uuid)}" data-action="remove"  data-section="pending" aria-label="Move to wastebasket">🗑️</button>`
+              + dlLink;
     } else if (section === 'approved') {
-      actions = `<button class="btn-remove" data-uuid="${escHtml(p.uuid)}" data-action="remove" data-section="approved" aria-label="Move to wastebasket">🗑️ Remove</button>`;
+      actions = `<button class="btn-remove" data-uuid="${escHtml(p.uuid)}" data-action="remove" data-section="approved" aria-label="Move to wastebasket">🗑️ Remove</button>`
+              + dlLink;
     } else {
       actions = `<button class="btn-restore" data-uuid="${escHtml(p.uuid)}" data-action="restore" data-section="removed" aria-label="Restore to gallery">↩️ Restore</button>`
-              + `<button class="btn-reject"  data-uuid="${escHtml(p.uuid)}" data-action="reject"  data-section="removed" aria-label="Delete permanently">✕</button>`;
+              + `<button class="btn-reject"  data-uuid="${escHtml(p.uuid)}" data-action="reject"  data-section="removed" aria-label="Delete permanently">✕</button>`
+              + dlLink;
     }
 
     const nameLine = p.uploaded_by
