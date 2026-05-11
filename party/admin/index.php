@@ -156,6 +156,13 @@ function dl_filename(array $p): string {
     return $name . $ts . '.' . $ext;
 }
 
+// Impersonation: get the organiser's email for the banner label
+$impersonating_email = '';
+if (!empty($_SESSION['mpd_real_user_id']) && $role === 'organizer') {
+    $imp_user = mpd_get_user_by_id((int)$_SESSION['mpd_user_id']);
+    $impersonating_email = $imp_user ? $imp_user['email'] : '';
+}
+
 $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
     : 'Admin — ' . htmlspecialchars($party_slug);
 ?>
@@ -277,6 +284,12 @@ $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
     .lb-prev { left: 10px; }
     .lb-next { right: 10px; }
     .lb-counter { font-size: 0.78rem; color: #6b5ca5; position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); }
+
+    /* ── Impersonation banner ── */
+    .impersonate-banner { background: #f5a623; color: #1a1035; padding: 8px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 0.88rem; font-weight: 700; flex-wrap: wrap; }
+    .impersonate-banner form { display: inline; }
+    .btn-stop-imp { padding: 5px 14px; background: #1a1035; color: #f5a623; border: none; border-radius: 6px; font-weight: 700; font-size: 0.82rem; cursor: pointer; font-family: inherit; }
+    .btn-stop-imp:hover { background: #2d1b69; color: #f5a623; }
 
     /* ── Organizer nav links ── */
     .org-nav { max-width:1400px; margin:12px auto 0; padding:0 20px; display:flex; gap:10px; flex-wrap:wrap; }
@@ -419,6 +432,17 @@ if ($sa_pages > 1):
 
 <?php else: ?>
 <!-- ══════════════════ ORGANIZER MODERATION VIEW ══════════════════ -->
+
+<?php if ($impersonating_email !== ''): ?>
+<div class="impersonate-banner" role="alert">
+  <span>👁 Viewing as organiser: <strong><?= htmlspecialchars($impersonating_email) ?></strong><?= $party_slug !== '' ? ' &mdash; party: <strong>' . htmlspecialchars($party_slug) . '</strong>' : '' ?></span>
+  <form method="post" action="impersonate.php">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+    <input type="hidden" name="action" value="stop">
+    <button type="submit" class="btn-stop-imp">&#8592; Return to superadmin</button>
+  </form>
+</div>
+<?php endif; ?>
 
 <!-- Stats / nav bar -->
 <div class="stats-bar" role="region" aria-label="Statistics">

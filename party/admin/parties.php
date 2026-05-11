@@ -344,6 +344,14 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
                 <button type="submit" class="btn-sm btn-ghost" title="Resend party invite email to organiser">Resend invite</button>
               </form>
 
+              <!-- Impersonate organiser -->
+              <form class="inline-form" method="post" action="impersonate.php">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+                <input type="hidden" name="action" value="start">
+                <input type="hidden" name="organiser_id" value="<?= (int)$pt['organizer_id'] ?>">
+                <button type="submit" class="btn-sm btn-ghost" title="Log in as this party's organiser">👁 View as</button>
+              </form>
+
               <!-- Delete -->
               <form class="inline-form" method="post" data-confirm="Delete party '<?= htmlspecialchars(addslashes($pt['party_name'])) ?>'? This cannot be undone.">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
