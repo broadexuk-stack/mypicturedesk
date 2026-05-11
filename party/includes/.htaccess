@@ -1,0 +1,4 @@
+# includes/.htaccess — PHP helper files, never served directly.
+
+Require all denied
+Options -Indexes

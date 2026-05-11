@@ -1,0 +1,34 @@
+# ── Credentials ─────────────────────────────────────────────
+# config.php contains DB credentials and the admin password hash.
+# It is set up manually on the server and must never be committed.
+party/config.php
+
+# ── One-time tools ───────────────────────────────────────────
+# These should be deleted from the server after use anyway.
+party/generate-password.php
+party/diag.php
+
+# ── Uploaded user content ────────────────────────────────────
+# Keep the directories and their .htaccess files, but never
+# commit actual uploaded photos or generated data files.
+
+party/quarantine/*
+!party/quarantine/.htaccess
+party/quarantine/thumbs/*
+!party/quarantine/thumbs/.htaccess
+
+party/gallery/*
+!party/gallery/.htaccess
+party/gallery/thumbs/*
+!party/gallery/thumbs/.htaccess
+
+party/data/*
+!party/data/.htaccess
+
+# ── Archives ─────────────────────────────────────────────────
+*.zip
+*.tar.gz
+
+# ── OS noise ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

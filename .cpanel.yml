@@ -1,0 +1,26 @@
+---
+deployment:
+  tasks:
+    # ── Set your cPanel username below ──────────────────────────
+    - export DEPLOYPATH=/home/mypicted/public_html/party
+
+    # ── Ensure writable directories exist ───────────────────────
+    - /bin/mkdir -p $DEPLOYPATH/quarantine/thumbs
+    - /bin/mkdir -p $DEPLOYPATH/gallery/thumbs
+    - /bin/mkdir -p $DEPLOYPATH/data
+
+    # ── Deploy files, excluding config.php ──────────────────────
+    # rsync copies everything from the party/ folder into the live
+    # directory, skipping config.php so your live credentials are
+    # never overwritten by a git pull.
+    # Repo: https://github.com/broadexuk-stack/mypicturedesk
+    - /usr/bin/rsync -rlp --exclude='config.php' party/ $DEPLOYPATH/
+
+    # ── Fix permissions ─────────────────────────────────────────
+    - /bin/find $DEPLOYPATH -type d -exec chmod 755 {} \;
+    - /bin/find $DEPLOYPATH -type f -exec chmod 644 {} \;
+    - /bin/chmod 755 $DEPLOYPATH/quarantine
+    - /bin/chmod 755 $DEPLOYPATH/quarantine/thumbs
+    - /bin/chmod 755 $DEPLOYPATH/gallery
+    - /bin/chmod 755 $DEPLOYPATH/gallery/thumbs
+    - /bin/chmod 755 $DEPLOYPATH/data

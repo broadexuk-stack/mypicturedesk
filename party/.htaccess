@@ -1,0 +1,25 @@
+# party/.htaccess — General rules for the party root.
+
+# Disable directory listing
+Options -Indexes
+
+# Deny direct access to PHP helper files that shouldn't be reached directly
+<FilesMatch "^(config|schema)\.php$">
+    Require all denied
+</FilesMatch>
+
+# Deny direct access to include files
+<FilesMatch "^includes/">
+    Require all denied
+</FilesMatch>
+
+# Never allow raw execution of anything inside data/
+<Files "*.json">
+    Require all denied
+</Files>
+
+# Charset & MIME hardening
+AddDefaultCharset UTF-8
+
+# Disable MIME-type sniffing
+Header always set X-Content-Type-Options "nosniff"

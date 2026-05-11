@@ -1,0 +1,21 @@
+# gallery/.htaccess — Serve approved images; block everything else.
+
+Options -Indexes -ExecCGI
+
+# Allow only image files through; deny all other requests
+<FilesMatch "\.(jpg|jpeg|png|gif|webp|heic|avif)$">
+    Require all granted
+</FilesMatch>
+
+# Catch-all deny for anything that does NOT match the image pattern above
+# (Apache evaluates FilesMatch directives in order — this overrides for non-images)
+<FilesMatch "^(?!.*\.(jpg|jpeg|png|gif|webp|heic|avif)$)">
+    Require all denied
+</FilesMatch>
+
+# Absolutely no PHP execution
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>
+
+AddDefaultCharset UTF-8

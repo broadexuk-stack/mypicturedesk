@@ -1,0 +1,16 @@
+# quarantine/.htaccess — Block ALL direct HTTP access.
+# Uploaded files awaiting moderation must never be served to guests.
+
+# Deny everything
+Require all denied
+
+# Belt-and-braces: disable PHP execution even if the Require directive is bypassed
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>
+
+# Disable directory listing
+Options -Indexes -ExecCGI
+
+# Prevent .htaccess from being overridden in this directory
+AllowOverride None

@@ -1,0 +1,23 @@
+# Force LF line endings in the repository for all text files.
+# The server is Linux — CRLF would break PHP, .htaccess, and shell scripts.
+
+*           text=auto eol=lf
+
+# Treat these explicitly as text
+*.php       text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.js        text eol=lf
+*.json      text eol=lf
+*.sql       text eol=lf
+*.md        text eol=lf
+*.yml       text eol=lf
+*.htaccess  text eol=lf
+
+# Treat these as binary (don't touch line endings)
+*.jpg       binary
+*.jpeg      binary
+*.png       binary
+*.gif       binary
+*.webp      binary
+*.ico       binary

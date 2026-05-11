@@ -1,0 +1,5 @@
+# data/.htaccess — Flat JSON storage for DB-less mode.
+# These files must NEVER be served to the public.
+
+Require all denied
+Options -Indexes
