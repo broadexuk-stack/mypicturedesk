@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `photos` (
   `ip_hash`            VARCHAR(64)   NOT NULL,
   -- Partial IP shown in admin UI (e.g. "*.2.3.4") — no first octet
   `ip_display`         VARCHAR(50)   NOT NULL,
-  `status`             ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `status`             ENUM('pending','approved','rejected','removed') NOT NULL DEFAULT 'pending',
   `approved_at`        DATETIME               DEFAULT NULL,
   `rejected_at`        DATETIME               DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -47,3 +47,9 @@ CREATE TABLE IF NOT EXISTS `upload_attempts` (
 
 -- Optional: prune old rate-limit rows nightly via cron
 -- DELETE FROM upload_attempts WHERE attempted_at < NOW() - INTERVAL 48 HOUR;
+
+-- -------------------------------------------------------
+-- Migration v1.1 — run once on existing installations
+-- Adds the 'removed' wastebasket status to the photos table.
+-- -------------------------------------------------------
+-- ALTER TABLE photos MODIFY COLUMN status ENUM('pending','approved','rejected','removed') NOT NULL DEFAULT 'pending';

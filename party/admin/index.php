@@ -80,10 +80,12 @@ if (!$logged_in && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['passwo
 $counts  = [];
 $pending = [];
 $approved = [];
+$removed  = [];
 if ($logged_in) {
     $counts   = db_counts();
     $pending  = db_get_photos('pending');
     $approved = db_get_photos('approved');
+    $removed  = db_get_photos('removed');
 }
 
 $csrf = $_SESSION['admin_csrf'];
@@ -208,8 +210,33 @@ function thumb_url(array $p): string {
     .btn-reject:hover { background: #c0392b; }
     .btn-remove  { flex: 1; padding: 8px 0; background: #4a3580; color: #c9b8ff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit; }
     .btn-remove:hover { background: #5a4590; color: #fff; }
+    .btn-restore { flex: 1; padding: 8px 0; background: #2471a3; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; font-family: inherit; }
+    .btn-restore:hover { background: #1a5276; }
 
     .empty-msg { color: #4a3580; font-size: 0.95rem; padding: 16px 0; }
+
+    /* Wastebasket section */
+    .wastebasket-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .btn-purge {
+      padding: 8px 20px;
+      background: #922b21;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-purge:hover { background: #7b241c; }
+    .btn-purge:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* Card fade-out on action */
     .photo-card.removing { opacity: 0; transform: scale(0.9); transition: all 0.3s ease; pointer-events: none; }
@@ -241,13 +268,13 @@ function thumb_url(array $p): string {
 <div class="stats-bar" role="region" aria-label="Statistics">
   <div class="stat-items">
     <div class="stat-item <?= $counts['pending'] > 0 ? 'has-pending' : '' ?>">
-      ⏳ Pending <strong><?= $counts['pending'] ?></strong>
+      ⏳ Pending <strong id="stat-pending"><?= $counts['pending'] ?></strong>
     </div>
     <div class="stat-item">
-      ✅ Approved <strong><?= $counts['approved'] ?></strong>
+      ✅ Approved <strong id="stat-approved"><?= $counts['approved'] ?></strong>
     </div>
     <div class="stat-item">
-      🗑️ Rejected today <strong><?= $counts['rejected_today'] ?></strong>
+      🗑️ Wastebasket <strong id="stat-removed"><?= $counts['removed'] ?></strong>
     </div>
     <div class="stat-item">
       📸 Total <strong><?= $counts['total'] ?></strong>
@@ -281,8 +308,8 @@ function thumb_url(array $p): string {
         IP: <?= htmlspecialchars($p['ip_display']) ?>
       </div>
       <div class="card-actions">
-        <button class="btn-approve" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="approve" aria-label="Approve">✅</button>
-        <button class="btn-reject"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="reject"  aria-label="Reject">🗑️</button>
+        <button class="btn-approve" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="approve" data-section="pending" aria-label="Approve">✅</button>
+        <button class="btn-reject"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="reject"  data-section="pending" aria-label="Reject">🗑️</button>
       </div>
     </div>
     <?php endforeach; ?>
@@ -312,12 +339,52 @@ function thumb_url(array $p): string {
         IP: <?= htmlspecialchars($p['ip_display']) ?>
       </div>
       <div class="card-actions">
-        <button class="btn-remove" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="reject" aria-label="Remove">🗑️ Remove</button>
+        <button class="btn-remove" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove" data-section="approved" aria-label="Move to wastebasket">🗑️ Remove</button>
       </div>
     </div>
     <?php endforeach; ?>
   </div>
   <?php endif; ?>
+
+  <hr class="section-divider">
+
+  <!-- ── Wastebasket section ── -->
+  <div class="wastebasket-bar">
+    <div class="section-heading" style="margin-bottom:0;">
+      🗑️ Wastebasket
+      <?php if ($counts['removed'] > 0): ?>
+        <span class="count-pill"><?= $counts['removed'] ?></span>
+      <?php endif; ?>
+    </div>
+    <button class="btn-purge" id="btn-purge-all"
+            <?= empty($removed) ? 'disabled' : '' ?>
+            aria-label="Permanently delete all wastebasket photos">
+      🗑️ Empty Wastebasket
+    </button>
+  </div>
+
+  <div class="photo-grid" id="wastebasket-grid" role="list">
+  <?php if (empty($removed)): ?>
+    <p class="empty-msg">Wastebasket is empty.</p>
+  <?php else: ?>
+    <?php foreach ($removed as $p): ?>
+    <div class="photo-card" id="card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem">
+      <img src="<?= htmlspecialchars(thumb_url($p)) ?>"
+           alt="Wastebasket photo"
+           loading="lazy"
+           onerror="this.style.display='none'">
+      <div class="card-meta">
+        <time><?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?></time>
+        IP: <?= htmlspecialchars($p['ip_display']) ?>
+      </div>
+      <div class="card-actions">
+        <button class="btn-restore" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="restore" data-section="removed" aria-label="Restore to gallery">↩️ Restore</button>
+        <button class="btn-reject"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="reject"  data-section="removed" aria-label="Delete permanently">✕</button>
+      </div>
+    </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
+  </div>
 
 </div><!-- /admin-body -->
 
@@ -326,13 +393,49 @@ function thumb_url(array $p): string {
   'use strict';
   const CSRF = <?= json_encode($csrf) ?>;
 
+  function adjStat(id, delta) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = Math.max(0, (parseInt(el.textContent, 10) || 0) + delta);
+  }
+
+  // Empty Wastebasket button
+  const purgeBtn = document.getElementById('btn-purge-all');
+  if (purgeBtn) {
+    purgeBtn.addEventListener('click', function () {
+      if (!confirm('Permanently delete all wastebasket photos? This cannot be undone.')) return;
+      purgeBtn.disabled = true;
+      fetch('moderate.php', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body   : new URLSearchParams({ action: 'purge_all', csrf_token: CSRF }),
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          const grid = document.getElementById('wastebasket-grid');
+          if (grid) grid.innerHTML = '<p class="empty-msg">Wastebasket is empty.</p>';
+          document.getElementById('stat-removed').textContent = '0';
+        } else {
+          alert('Error: ' + (data.error || 'Unknown error'));
+          purgeBtn.disabled = false;
+        }
+      })
+      .catch(() => {
+        alert('Network error. Please try again.');
+        purgeBtn.disabled = false;
+      });
+    });
+  }
+
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('[data-action]');
-    if (!btn) return;
+    if (!btn || btn.id === 'btn-purge-all') return;
 
-    const uuid   = btn.dataset.uuid;
-    const action = btn.dataset.action;
-    const card   = document.getElementById('card-' + uuid);
+    const uuid    = btn.dataset.uuid;
+    const action  = btn.dataset.action;
+    const section = btn.dataset.section || '';
+    const card    = document.getElementById('card-' + uuid);
     if (!uuid || !card) return;
 
     card.classList.add('removing');
@@ -345,7 +448,23 @@ function thumb_url(array $p): string {
     .then(r => r.json())
     .then(data => {
       if (data.ok) {
-        setTimeout(() => card.remove(), 320);
+        setTimeout(() => {
+          card.remove();
+          if (action === 'approve') {
+            adjStat('stat-pending', -1);
+            adjStat('stat-approved', 1);
+          } else if (action === 'reject') {
+            adjStat(section === 'removed' ? 'stat-removed' : 'stat-pending', -1);
+          } else if (action === 'remove') {
+            adjStat('stat-approved', -1);
+            adjStat('stat-removed', 1);
+            // re-enable purge button if wastebasket now has items
+            if (purgeBtn) purgeBtn.disabled = false;
+          } else if (action === 'restore') {
+            adjStat('stat-removed', -1);
+            adjStat('stat-approved', 1);
+          }
+        }, 320);
       } else {
         card.classList.remove('removing');
         alert('Error: ' + (data.error || 'Unknown error'));

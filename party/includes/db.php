@@ -194,6 +194,7 @@ function db_counts(): array
                 "SELECT
                     SUM(status = 'pending')                                         AS pending,
                     SUM(status = 'approved')                                        AS approved,
+                    SUM(status = 'removed')                                         AS removed,
                     SUM(status = 'rejected' AND DATE(rejected_at) = '$today')       AS rejected_today,
                     COUNT(*)                                                        AS total
                  FROM photos"
@@ -201,6 +202,7 @@ function db_counts(): array
             return [
                 'pending'        => (int)($rows['pending']        ?? 0),
                 'approved'       => (int)($rows['approved']       ?? 0),
+                'removed'        => (int)($rows['removed']        ?? 0),
                 'rejected_today' => (int)($rows['rejected_today'] ?? 0),
                 'total'          => (int)($rows['total']          ?? 0),
             ];
@@ -211,10 +213,11 @@ function db_counts(): array
 
     // --- Flat JSON fallback ---
     $photos = json_photos_read();
-    $pending = $approved = $rejected_today = 0;
+    $pending = $approved = $removed = $rejected_today = 0;
     foreach ($photos as $p) {
         if ($p['status'] === 'pending')  $pending++;
         if ($p['status'] === 'approved') $approved++;
+        if ($p['status'] === 'removed')  $removed++;
         if ($p['status'] === 'rejected' && isset($p['rejected_at'])
             && str_starts_with($p['rejected_at'], $today)) {
             $rejected_today++;
@@ -223,6 +226,7 @@ function db_counts(): array
     return [
         'pending'        => $pending,
         'approved'       => $approved,
+        'removed'        => $removed,
         'rejected_today' => $rejected_today,
         'total'          => count($photos),
     ];
