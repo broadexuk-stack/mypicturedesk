@@ -54,21 +54,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email = trim($_POST['organizer_email'] ?? '');
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $error = 'Please enter a valid email address.';
-            } elseif (mpd_get_user_by_email($email) !== false) {
-                $error = 'An account with that email already exists.';
             } else {
-                $user_id = mpd_create_user($email, 'organizer');
-                $token   = mpd_set_user_token($user_id);
-                $link    = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($token);
+                $existing = mpd_get_user_by_email($email);
+                if ($existing !== false && !empty($existing['password_hash'])) {
+                    $error = 'An active account with that email already exists.';
+                } else {
+                    // Create new account, or resend invitation to an unactivated one
+                    $user_id = $existing !== false
+                        ? (int)$existing['id']
+                        : mpd_create_user($email, 'organizer');
+                    $token   = mpd_set_user_token($user_id);
+                    $link    = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($token);
 
-                $subject = 'Your MyPictureDesk organizer account';
-                $body    = "<p>Hi,</p>"
-                         . "<p>An organizer account has been created for you on MyPictureDesk.</p>"
-                         . "<p>Click the link below to set your password (valid for 48 hours):</p>"
-                         . "<p><a href='$link'>$link</a></p>"
-                         . "<p>If you did not expect this email, please ignore it.</p>";
-                mpd_send_email($email, $subject, $body);
-                $success = "Account created for $email. Invitation email sent.";
+                    $subject = 'Your MyPictureDesk organizer account';
+                    $body    = "<p>Hi,</p>"
+                             . "<p>An organizer account has been created for you on MyPictureDesk.</p>"
+                             . "<p>Click the link below to set your password (valid for 48 hours):</p>"
+                             . "<p><a href='$link'>$link</a></p>"
+                             . "<p>If you did not expect this email, please ignore it.</p>";
+                    mpd_send_email($email, $subject, $body);
+                    $success = "Invitation sent to $email.";
+                }
             }
         }
 
@@ -108,6 +114,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                . "<ul><li><strong>Party name:</strong> $name</li>"
                                . "<li><strong>Guest URL:</strong> <a href='$guest_url'>$guest_url</a></li>"
                                . "<li><strong>Admin panel:</strong> <a href='" . BASE_URL . "/party/admin/index.php'>Log in to moderate photos</a></li></ul>";
+                    if (empty($org['password_hash'])) {
+                        $inv_token = mpd_set_user_token($org_id);
+                        $inv_link  = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($inv_token);
+                        $body .= "<p>You haven't set a password yet — <a href='$inv_link'>click here to set your password</a> (link valid for 48 hours).</p>";
+                    }
                     mpd_send_email($org['email'], $subject, $body);
                 }
                 $success = "Party '$name' created with slug '$slug'. Directories provisioned.";
