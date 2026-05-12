@@ -122,7 +122,7 @@ function db_count_photos_by_status(int $party_id): array {
 // Super-admin global paginated photo view (all parties)
 function db_get_photos_paginated(int $limit, int $offset, ?int $party_id = null): array {
     if ($party_id !== null) {
-        $sql = 'SELECT p.*, pt.party_name FROM photos p
+        $sql = 'SELECT p.*, pt.party_name, pt.slug AS party_slug FROM photos p
                 JOIN mpd_parties pt ON pt.id = p.party_id
                 WHERE p.party_id = :party_id
                 ORDER BY p.upload_timestamp DESC
@@ -130,7 +130,7 @@ function db_get_photos_paginated(int $limit, int $offset, ?int $party_id = null)
         $st = db_pdo()->prepare($sql);
         $st->bindValue(':party_id', $party_id, PDO::PARAM_INT);
     } else {
-        $sql = 'SELECT p.*, pt.party_name FROM photos p
+        $sql = 'SELECT p.*, pt.party_name, pt.slug AS party_slug FROM photos p
                 JOIN mpd_parties pt ON pt.id = p.party_id
                 ORDER BY p.upload_timestamp DESC
                 LIMIT :lim OFFSET :off';

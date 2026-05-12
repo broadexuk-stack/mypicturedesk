@@ -113,7 +113,8 @@ $removed  = [];
 if ($logged_in) {
     if ($role === 'superadmin') {
         $sa_parties      = mpd_get_all_parties();
-        $sa_per_page     = in_array((int)($_GET['pp'] ?? 20), [20, 60, 150], true) ? (int)$_GET['pp'] : 20;
+        $sa_per_page_raw = (int)($_GET['pp'] ?? 20);
+        $sa_per_page     = in_array($sa_per_page_raw, [20, 60, 150], true) ? $sa_per_page_raw : 20;
         $sa_page         = max(1, (int)($_GET['pg'] ?? 1));
         $sa_party_filter = max(0, (int)($_GET['party'] ?? 0));
         $filter_pid      = $sa_party_filter > 0 ? $sa_party_filter : null;
@@ -331,6 +332,9 @@ $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
     <span class="stat-item" style="color:#6b5ca5;font-size:0.78rem;">
       <?= count($sa_parties) ?> party / parties
     </span>
+    <span class="stat-item" title="Live — updates every 10 s">
+      <span class="poll-dot" id="sa-poll-dot"></span>
+    </span>
   </div>
   <div class="nav-links">
     <a class="nav-link" href="parties.php">🎉 Parties</a>
@@ -340,9 +344,9 @@ $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
 </div>
 
 <!-- Party filter + per-page toolbar -->
-<form class="sa-toolbar" method="get" action="index.php">
-  <label for="sa-party-sel" style="font-size:0.82rem;color:#c9b8ff;">Filter party:</label>
-  <select id="sa-party-sel" name="party" onchange="this.form.submit()">
+<form class="sa-toolbar" method="get" action="index.php" id="sa-filter-form">
+  <label for="sa-party-sel" style="font-size:0.82rem;color:#c9b8ff;">Party:</label>
+  <select id="sa-party-sel" name="party">
     <option value="0" <?= $sa_party_filter === 0 ? 'selected' : '' ?>>All parties</option>
     <?php foreach ($sa_parties as $pt): ?>
       <option value="<?= (int)$pt['id'] ?>"
@@ -352,14 +356,14 @@ $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
     <?php endforeach; ?>
   </select>
 
-  <input type="hidden" name="pp" value="<?= $sa_per_page ?>">
-  <input type="hidden" name="pg" value="1">
+  <label for="sa-pp-sel" style="font-size:0.82rem;color:#c9b8ff;">Per page:</label>
+  <select id="sa-pp-sel" name="pp">
+    <?php foreach ([20, 60, 150] as $pp): ?>
+      <option value="<?= $pp ?>" <?= $sa_per_page === $pp ? 'selected' : '' ?>><?= $pp ?></option>
+    <?php endforeach; ?>
+  </select>
 
-  <span style="font-size:0.82rem;color:#c9b8ff;">Per page:</span>
-  <?php foreach ([20, 60, 150] as $pp): ?>
-    <a class="pp-btn <?= $sa_per_page === $pp ? 'active' : '' ?>"
-       href="?party=<?= $sa_party_filter ?>&pp=<?= $pp ?>&pg=1"><?= $pp ?></a>
-  <?php endforeach; ?>
+  <input type="hidden" name="pg" value="1">
 
   <span class="sa-total"><?= $sa_total ?> photos total</span>
 </form>
@@ -385,9 +389,7 @@ if ($sa_pages > 1):
       <p class="empty-msg">No photos found.</p>
     <?php else: ?>
       <?php foreach ($sa_photos as $p):
-        // For superadmin view, we need the party slug to build URLs
-        $p_party = mpd_get_party_by_id((int)$p['party_id']);
-        $p_slug  = $p_party ? $p_party['slug'] : '';
+        $p_slug   = $p['party_slug'] ?? '';
         $disk_ext = output_extension($p['original_extension']);
         $thumb_src = ($p['status'] === 'pending' || ($p['status'] === 'removed' && empty($p['approved_at'])))
             ? 'thumb.php?uuid=' . urlencode($p['uuid']) . '&party=' . urlencode($p_slug)
@@ -396,7 +398,7 @@ if ($sa_pages > 1):
             ? 'thumb.php?uuid=' . urlencode($p['uuid']) . '&party=' . urlencode($p_slug) . '&full=1'
             : '../image.php?party=' . urlencode($p_slug) . '&dir=gallery&uuid=' . urlencode($p['uuid']) . '&ext=' . urlencode($disk_ext);
       ?>
-      <div class="photo-card" role="listitem"
+      <div class="photo-card" id="sa-card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem"
            data-full-url="<?= htmlspecialchars($full_src) ?>"
            data-timestamp="<?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?>"
            data-ip="<?= htmlspecialchars($p['ip_display']) ?>"
@@ -630,9 +632,12 @@ if ($sa_pages > 1):
 <script nonce="<?= $nonce ?>">
 (function () {
   'use strict';
-  const CSRF        = <?= json_encode($csrf) ?>;
+  const CSRF          = <?= json_encode($csrf) ?>;
   const IS_SUPERADMIN = <?= json_encode($role === 'superadmin') ?>;
-  const PARTY_SLUG  = <?= json_encode($party_slug) ?>;
+  const PARTY_SLUG    = <?= json_encode($party_slug) ?>;
+  const SA_PARTY_FILTER = <?= json_encode($sa_party_filter) ?>;
+  const SA_PER_PAGE     = <?= json_encode($sa_per_page) ?>;
+  const SA_PAGE         = <?= json_encode($sa_page) ?>;
 
   // ── Lightbox ─────────────────────────────────────────────────
   const lb         = document.getElementById('lb');
@@ -711,8 +716,122 @@ if ($sa_pages > 1):
     lbOpen(img.closest('.photo-card'));
   });
 
+  // ── Shared utilities ─────────────────────────────────────────
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function outputExt(ext) {
+    const l = (ext || '').toLowerCase();
+    return (l === 'heic' || l === 'heif') ? 'jpg' : l;
+  }
+
+  function fmtDate(ts) {
+    if (!ts) return '';
+    const d = new Date(ts.replace(' ', 'T'));
+    return d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+         + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+  }
+
+  // ── Superadmin live grid ──────────────────────────────────────
+  if (IS_SUPERADMIN) {
+    const saDot = document.getElementById('sa-poll-dot');
+
+    // Wire up filter form selects
+    const saForm = document.getElementById('sa-filter-form');
+    if (saForm) {
+      ['sa-party-sel', 'sa-pp-sel'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => saForm.submit());
+      });
+    }
+
+    function buildSACard(p) {
+      const slug = p.party_slug || '';
+      const ext  = outputExt(p.original_extension);
+      let thumbSrc, fullSrc;
+      if (p.status === 'pending' || (p.status === 'removed' && !p.approved_at)) {
+        thumbSrc = 'thumb.php?uuid=' + encodeURIComponent(p.uuid) + '&party=' + encodeURIComponent(slug);
+        fullSrc  = thumbSrc + '&full=1';
+      } else {
+        thumbSrc = '../image.php?party=' + encodeURIComponent(slug)
+                 + '&dir=gallery_thumbs&uuid=' + encodeURIComponent(p.uuid)
+                 + '&ext=' + encodeURIComponent(ext);
+        fullSrc  = '../image.php?party=' + encodeURIComponent(slug)
+                 + '&dir=gallery&uuid=' + encodeURIComponent(p.uuid)
+                 + '&ext=' + encodeURIComponent(ext);
+      }
+      const div = document.createElement('div');
+      div.className = 'photo-card';
+      div.id = 'sa-card-' + p.uuid;
+      div.setAttribute('role', 'listitem');
+      div.dataset.fullUrl      = fullSrc;
+      div.dataset.timestamp    = fmtDate(p.upload_timestamp);
+      div.dataset.ip           = p.ip_display;
+      div.dataset.name         = p.uploaded_by || '';
+      div.dataset.sectionLabel = (p.status || '').charAt(0).toUpperCase() + (p.status || '').slice(1);
+      div.dataset.filetype     = ext.toUpperCase();
+      const nameLine = p.uploaded_by ? `<span class="card-name">👤 ${escHtml(p.uploaded_by)}</span>` : '';
+      div.innerHTML = `<img src="${escHtml(thumbSrc)}" alt="Photo" loading="lazy" onerror="this.style.display='none'">`
+        + `<div class="card-meta">`
+        + `<span class="card-party-badge">${escHtml(p.party_name || slug)}</span>`
+        + nameLine
+        + `<time>${escHtml(fmtDate(p.upload_timestamp))}</time>`
+        + escHtml(div.dataset.sectionLabel)
+        + `</div>`;
+      return div;
+    }
+
+    function reconcileSAGrid(photos) {
+      const grid = document.getElementById('sa-grid');
+      if (!grid) return;
+      const incoming = new Map(photos.map(p => [p.uuid, p]));
+      const existing = new Set();
+      grid.querySelectorAll('.photo-card').forEach(card => {
+        const uuid = card.id.replace('sa-card-', '');
+        existing.add(uuid);
+        if (!incoming.has(uuid) && !card.classList.contains('removing')) {
+          card.classList.add('removing');
+          setTimeout(() => card.remove(), 320);
+        }
+      });
+      photos.filter(p => !existing.has(p.uuid)).forEach(p => {
+        const card = buildSACard(p);
+        const first = grid.querySelector('.photo-card');
+        if (first) grid.insertBefore(card, first); else grid.appendChild(card);
+      });
+      const visible = grid.querySelectorAll('.photo-card:not(.removing)').length;
+      let emptyEl = grid.querySelector('.empty-msg');
+      if (visible === 0 && !emptyEl) {
+        emptyEl = document.createElement('p');
+        emptyEl.className = 'empty-msg';
+        emptyEl.textContent = 'No photos found.';
+        grid.appendChild(emptyEl);
+      } else if (visible > 0 && emptyEl) {
+        emptyEl.remove();
+      }
+    }
+
+    function pollSA() {
+      fetch('sa_poll.php?party=' + SA_PARTY_FILTER + '&pp=' + SA_PER_PAGE + '&pg=' + SA_PAGE, { cache: 'no-store' })
+        .then(r => {
+          if (r.status === 401) { location.reload(); return null; }
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(data => {
+          if (!data || !data.ok) return;
+          if (saDot) saDot.classList.remove('error');
+          reconcileSAGrid(data.photos);
+        })
+        .catch(() => { if (saDot) saDot.classList.add('error'); });
+    }
+
+    setInterval(pollSA, 10000);
+    return;
+  }
+
   // ── Organizer-only moderation JS ─────────────────────────────
-  if (IS_SUPERADMIN) return; // superadmin view is server-rendered only
 
   function adjStat(id, delta) {
     const el = document.getElementById(id);
@@ -750,15 +869,6 @@ if ($sa_pages > 1):
     syncRemovedUI(Math.max(0, (parseInt(el.textContent, 10) || 0) + delta));
   }
 
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  function outputExt(ext) {
-    const l = (ext || '').toLowerCase();
-    return (l === 'heic' || l === 'heif') ? 'jpg' : l;
-  }
-
   function thumbUrl(p) {
     const ext = outputExt(p.original_extension);
     if (p.status === 'pending' || (p.status === 'removed' && !p.approved_at)) {
@@ -782,13 +892,6 @@ if ($sa_pages > 1):
     const raw = (p.uploaded_by || '').replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30);
     const ts  = (p.upload_timestamp || '').replace(/[^0-9]/g, '').substring(0, 14);
     return (raw || 'photo') + '_' + ts + '.' + outputExt(p.original_extension);
-  }
-
-  function fmtDate(ts) {
-    if (!ts) return '';
-    const d = new Date(ts.replace(' ', 'T'));
-    return d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
-         + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
   }
 
   const sectionLabels = { pending:'Awaiting Approval', approved:'In the Gallery', removed:'Wastebasket' };
