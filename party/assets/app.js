@@ -485,4 +485,10 @@
   loadGallery();
   setInterval(loadGallery, refreshMs);
 
+  // Poll immediately when the tab becomes visible again (iOS throttles
+  // setInterval while the screen is off or another app is in front)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) loadGallery();
+  });
+
 })();

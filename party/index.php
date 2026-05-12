@@ -302,7 +302,7 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
       refreshMs:    30000
     };
   </script>
-  <script src="assets/app.js"></script>
+  <script src="assets/app.js?v=<?= filemtime(__DIR__ . '/assets/app.js') ?>"></script>
 
 <?php endif; ?>
 </body>
