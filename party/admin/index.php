@@ -374,7 +374,7 @@ $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
     <?php foreach ($sa_parties as $pt): ?>
       <option value="<?= (int)$pt['id'] ?>"
               <?= $sa_party_filter === (int)$pt['id'] ? 'selected' : '' ?>>
-        <?= htmlspecialchars($pt['party_name']) ?>
+        <?= $pt['is_active'] ? '▶' : '⏸' ?> <?= htmlspecialchars($pt['party_name']) ?>
       </option>
     <?php endforeach; ?>
   </select>
