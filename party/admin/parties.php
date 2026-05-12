@@ -283,6 +283,7 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
   <div class="nav-links">
     <a class="nav-link" href="index.php">📸 Dashboard</a>
     <a class="nav-link active" href="parties.php">🎉 Parties</a>
+    <a class="nav-link" href="users.php">👥 Users</a>
     <a class="nav-link" href="superadmin_settings.php">⚙️ Settings</a>
   </div>
   <a class="signout" href="index.php?logout=<?= urlencode($csrf) ?>">Sign out</a>

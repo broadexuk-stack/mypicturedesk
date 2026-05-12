@@ -260,9 +260,20 @@ function mpd_set_user_active(int $id, bool $active): void {
 
 function mpd_get_all_users(): array {
     return db_pdo()->query(
-        'SELECT id, email, role, is_active, created_at, last_login_at
-         FROM mpd_users ORDER BY created_at DESC'
+        "SELECT u.id, u.email, u.role, u.is_active, u.created_at, u.last_login_at,
+                (u.password_hash IS NOT NULL) AS has_password,
+                CASE WHEN u.first_login_token IS NOT NULL
+                          AND u.token_expires_at > NOW() THEN 1 ELSE 0 END AS has_pending_invite,
+                COUNT(p.id) AS party_count
+         FROM mpd_users u
+         LEFT JOIN mpd_parties p ON p.organizer_id = u.id
+         GROUP BY u.id
+         ORDER BY u.created_at DESC"
     )->fetchAll();
+}
+
+function mpd_delete_user(int $id): void {
+    db_pdo()->prepare('DELETE FROM mpd_users WHERE id = :id')->execute([':id' => $id]);
 }
 
 // ── F. mpd_parties management ────────────────────────────────

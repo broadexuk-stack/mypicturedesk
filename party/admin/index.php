@@ -358,6 +358,7 @@ $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
   </div>
   <div class="nav-links">
     <a class="nav-link" href="parties.php">🎉 Parties</a>
+    <a class="nav-link" href="users.php">👥 Users</a>
     <a class="nav-link" href="superadmin_settings.php">⚙️ Settings</a>
     <a class="signout" href="index.php?logout=<?= urlencode($csrf) ?>">Sign out</a>
   </div>
