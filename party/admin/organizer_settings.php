@@ -46,8 +46,9 @@ header('X-Frame-Options: DENY');
 $party   = mpd_get_party_by_id($party_id);
 if ($party === false) { header('Location: index.php'); exit; }
 
-$s_plat  = mpd_get_all_settings();
-$ret_max = max(1, (int)($s_plat['retention_max_days'] ?? 365));
+$s_plat      = mpd_get_all_settings();
+$ret_max     = max(1, (int)($s_plat['retention_max_days'] ?? 365));
+$org_parties = mpd_get_parties_for_organizer($user_id);
 
 // Organizer may only edit their own party
 if ($role === 'organizer' && (int)$party['organizer_id'] !== $user_id) {
@@ -128,6 +129,7 @@ if (!empty($party['event_datetime'])) {
     .btn-save { padding: 12px 32px; background: #f5a623; color: #1a1035; border: none; border-radius: 10px; font-weight: 900; font-size: 1rem; cursor: pointer; font-family: inherit; }
     .btn-save:hover { background: #e6941a; }
     .coming-soon { font-size: 0.78rem; color: #4a3580; background: #2d1b69; border-radius: 8px; padding: 8px 14px; margin-top: 6px; }
+    .party-switch-sel { font-family: inherit; font-size: 0.82rem; padding: 5px 10px; border-radius: 8px; border: 1px solid #4b35a0; background: #2d1b69; color: #c9b8ff; cursor: pointer; max-width: 200px; }
   </style>
 </head>
 <body>
@@ -136,6 +138,19 @@ if (!empty($party['event_datetime'])) {
   <div class="nav-links">
     <a class="nav-link" href="index.php">← Back to Moderation</a>
     <a class="nav-link" href="qrcode.php">📱 QR Code</a>
+    <?php if (count($org_parties) > 1): ?>
+    <form id="party-switch-form" method="post" action="switch_party.php" style="display:flex;align-items:center;">
+      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+      <input type="hidden" name="redirect" value="organizer_settings.php">
+      <select class="party-switch-sel" id="party-switch-sel" name="party_id" aria-label="Switch party">
+        <?php foreach ($org_parties as $p): ?>
+          <option value="<?= (int)$p['id'] ?>" <?= (int)$p['id'] === $party_id ? 'selected' : '' ?>>
+            <?= htmlspecialchars($p['party_name']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </form>
+    <?php endif; ?>
   </div>
   <a class="signout" href="index.php?logout=<?= urlencode($csrf) ?>">Sign out</a>
 </div>
@@ -200,5 +215,16 @@ if (!empty($party['event_datetime'])) {
     <button type="submit" class="btn-save">Save Settings</button>
   </form>
 </div>
+
+<script nonce="<?= $nonce ?>">
+(function () {
+  var sel = document.getElementById('party-switch-sel');
+  if (sel) {
+    sel.addEventListener('change', function () {
+      document.getElementById('party-switch-form').submit();
+    });
+  }
+}());
+</script>
 </body>
 </html>

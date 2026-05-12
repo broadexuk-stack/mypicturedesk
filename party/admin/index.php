@@ -105,6 +105,7 @@ $sa_page        = 1;
 $sa_party_filter= 0;
 
 // Organizer: load moderation data
+$org_parties = [];
 $counts   = [];
 $pending  = [];
 $approved = [];
@@ -121,6 +122,7 @@ if ($logged_in) {
         $sa_total        = db_count_all_photos($filter_pid);
         $sa_photos       = db_get_photos_paginated($sa_per_page, ($sa_page - 1) * $sa_per_page, $filter_pid);
     } elseif ($role === 'organizer' && $party_id > 0) {
+        $org_parties = mpd_get_parties_for_organizer((int)$_SESSION['mpd_user_id']);
         $counts   = db_count_photos_by_status($party_id);
         $pending  = db_get_photos('pending',  $party_id);
         $approved = db_get_photos('approved', $party_id);
@@ -296,6 +298,9 @@ $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
     .org-nav { max-width:1400px; margin:12px auto 0; padding:0 20px; display:flex; gap:10px; flex-wrap:wrap; }
     .org-nav-link { font-family:inherit; font-size:0.82rem; padding:7px 14px; background:#2d1b69; color:#c9b8ff; border-radius:8px; text-decoration:none; border:1px solid #4b35a0; }
     .org-nav-link:hover { background:#3d2494; color:#f0ebff; }
+
+    /* ── Party switcher ── */
+    .party-switch-sel { font-family:inherit; font-size:0.82rem; padding:5px 10px; border-radius:8px; border:1px solid #4b35a0; background:#2d1b69; color:#c9b8ff; cursor:pointer; max-width:200px; }
   </style>
 </head>
 <body>
@@ -466,6 +471,19 @@ if ($sa_pages > 1):
     </div>
   </div>
   <div class="nav-links">
+    <?php if (count($org_parties) > 1): ?>
+    <form id="party-switch-form" method="post" action="switch_party.php" style="display:flex;align-items:center;">
+      <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+      <input type="hidden" name="redirect" value="index.php">
+      <select class="party-switch-sel" id="party-switch-sel" name="party_id" aria-label="Switch party">
+        <?php foreach ($org_parties as $p): ?>
+          <option value="<?= (int)$p['id'] ?>" <?= (int)$p['id'] === $party_id ? 'selected' : '' ?>>
+            <?= htmlspecialchars($p['party_name']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+    </form>
+    <?php endif; ?>
     <a class="signout" href="index.php?logout=<?= urlencode($csrf) ?>">Sign out</a>
   </div>
 </div>
@@ -832,6 +850,13 @@ if ($sa_pages > 1):
   }
 
   // ── Organizer-only moderation JS ─────────────────────────────
+
+  var pSwitchSel = document.getElementById('party-switch-sel');
+  if (pSwitchSel) {
+    pSwitchSel.addEventListener('change', function () {
+      document.getElementById('party-switch-form').submit();
+    });
+  }
 
   function adjStat(id, delta) {
     const el = document.getElementById(id);
