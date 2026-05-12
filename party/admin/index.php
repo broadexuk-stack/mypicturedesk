@@ -211,6 +211,7 @@ $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
     .stats-bar .nav-links { display: flex; gap: 14px; align-items: center; }
     .stats-bar .nav-link { color: #c9b8ff; font-size: 0.82rem; text-decoration: none; white-space: nowrap; }
     .stats-bar .nav-link:hover { color: #f5a623; }
+    .stats-bar .nav-link.active { color: #f5a623; font-weight: 700; }
     .stats-bar .signout { color: #c9b8ff; font-size: 0.8rem; text-decoration: none; white-space: nowrap; }
     .stats-bar .signout:hover { color: #f5a623; }
     .poll-dot { width: 7px; height: 7px; border-radius: 50%; background: #27ae60; display: inline-block; margin-left: 6px; transition: background 0.3s; }
@@ -347,19 +348,20 @@ $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
 <!-- ══════════════════ SUPER ADMIN DASHBOARD ══════════════════ -->
 
 <div class="stats-bar" role="region" aria-label="Super Admin">
-  <div class="stat-items">
+  <div class="nav-links">
+    <a class="nav-link active" href="index.php">📸 Dashboard</a>
+    <a class="nav-link" href="parties.php">🎉 Parties</a>
+    <a class="nav-link" href="users.php">👥 Users</a>
+    <a class="nav-link" href="superadmin_settings.php">⚙️ Settings</a>
+  </div>
+  <div class="nav-links">
     <span class="stat-item">⭐ Super Admin</span>
     <span class="stat-item" style="color:#6b5ca5;font-size:0.78rem;">
-      <?= count($sa_parties) ?> party / parties
+      <?= count($sa_parties) ?> <?= count($sa_parties) === 1 ? 'party' : 'parties' ?>
     </span>
     <span class="stat-item" title="Live — updates every 10 s">
       <span class="poll-dot" id="sa-poll-dot"></span>
     </span>
-  </div>
-  <div class="nav-links">
-    <a class="nav-link" href="parties.php">🎉 Parties</a>
-    <a class="nav-link" href="users.php">👥 Users</a>
-    <a class="nav-link" href="superadmin_settings.php">⚙️ Settings</a>
     <a class="signout" href="index.php?logout=<?= urlencode($csrf) ?>">Sign out</a>
   </div>
 </div>
