@@ -344,10 +344,32 @@ function mpd_toggle_party_active(int $id, bool $active): void {
 }
 
 function mpd_delete_party(int $id): void {
+    // Fetch slug before deleting so we can remove the upload directory
+    $st = db_pdo()->prepare('SELECT slug FROM mpd_parties WHERE id = :id LIMIT 1');
+    $st->execute([':id' => $id]);
+    $slug = (string)($st->fetchColumn() ?: '');
+
     $pdo = db_pdo();
     $pdo->prepare('DELETE FROM photos          WHERE party_id = :id')->execute([':id' => $id]);
     $pdo->prepare('DELETE FROM upload_attempts WHERE party_id = :id')->execute([':id' => $id]);
     $pdo->prepare('DELETE FROM mpd_parties     WHERE id       = :id')->execute([':id' => $id]);
+
+    // Remove upload directory tree
+    if ($slug !== '') {
+        $dir = rtrim(UPLOADS_BASE, '/') . '/' . $slug;
+        if (is_dir($dir)) {
+            mpd_rmdir_recursive($dir);
+        }
+    }
+}
+
+function mpd_rmdir_recursive(string $dir): void {
+    foreach (scandir($dir) as $entry) {
+        if ($entry === '.' || $entry === '..') continue;
+        $path = $dir . '/' . $entry;
+        is_dir($path) ? mpd_rmdir_recursive($path) : unlink($path);
+    }
+    rmdir($dir);
 }
 
 // ── G. mpd_settings management ───────────────────────────────
