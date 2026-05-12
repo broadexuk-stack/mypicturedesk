@@ -122,18 +122,19 @@ function db_count_photos_by_status(int $party_id): array {
 // Super-admin global paginated photo view (all parties)
 function db_get_photos_paginated(int $limit, int $offset, ?int $party_id = null): array {
     if ($party_id !== null) {
-        $sql = 'SELECT p.*, pt.party_name, pt.slug AS party_slug FROM photos p
+        $sql = "SELECT p.*, pt.party_name, pt.slug AS party_slug FROM photos p
                 JOIN mpd_parties pt ON pt.id = p.party_id
-                WHERE p.party_id = :party_id
+                WHERE p.party_id = :party_id AND p.status != 'rejected'
                 ORDER BY p.upload_timestamp DESC
-                LIMIT :lim OFFSET :off';
+                LIMIT :lim OFFSET :off";
         $st = db_pdo()->prepare($sql);
         $st->bindValue(':party_id', $party_id, PDO::PARAM_INT);
     } else {
-        $sql = 'SELECT p.*, pt.party_name, pt.slug AS party_slug FROM photos p
+        $sql = "SELECT p.*, pt.party_name, pt.slug AS party_slug FROM photos p
                 JOIN mpd_parties pt ON pt.id = p.party_id
+                WHERE p.status != 'rejected'
                 ORDER BY p.upload_timestamp DESC
-                LIMIT :lim OFFSET :off';
+                LIMIT :lim OFFSET :off";
         $st = db_pdo()->prepare($sql);
     }
     $st->bindValue(':lim',  $limit,  PDO::PARAM_INT);
@@ -144,10 +145,10 @@ function db_get_photos_paginated(int $limit, int $offset, ?int $party_id = null)
 
 function db_count_all_photos(?int $party_id = null): int {
     if ($party_id !== null) {
-        $st = db_pdo()->prepare('SELECT COUNT(*) FROM photos WHERE party_id = :pid');
+        $st = db_pdo()->prepare("SELECT COUNT(*) FROM photos WHERE party_id = :pid AND status != 'rejected'");
         $st->execute([':pid' => $party_id]);
     } else {
-        $st = db_pdo()->query('SELECT COUNT(*) FROM photos');
+        $st = db_pdo()->query("SELECT COUNT(*) FROM photos WHERE status != 'rejected'");
     }
     return (int)$st->fetchColumn();
 }
