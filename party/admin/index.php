@@ -106,10 +106,11 @@ $sa_party_filter= 0;
 
 // Organizer: load moderation data
 $org_parties = [];
-$counts   = [];
-$pending  = [];
-$approved = [];
-$removed  = [];
+$counts      = [];
+$pending     = [];
+$approved    = [];
+$removed     = [];
+$is_active   = true;
 
 if ($logged_in) {
     if ($role === 'superadmin') {
@@ -123,6 +124,8 @@ if ($logged_in) {
         $sa_photos       = db_get_photos_paginated($sa_per_page, ($sa_page - 1) * $sa_per_page, $filter_pid);
     } elseif ($role === 'organizer' && $party_id > 0) {
         $org_parties = mpd_get_parties_for_organizer((int)$_SESSION['mpd_user_id']);
+        $party_data  = mpd_get_party_by_id($party_id);
+        $is_active   = $party_data ? (bool)$party_data['is_active'] : true;
         $counts   = db_count_photos_by_status($party_id);
         $pending  = db_get_photos('pending',  $party_id);
         $approved = db_get_photos('approved', $party_id);
@@ -301,6 +304,18 @@ $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
 
     /* ── Party switcher ── */
     .party-switch-sel { font-family:inherit; font-size:0.82rem; padding:5px 10px; border-radius:8px; border:1px solid #4b35a0; background:#2d1b69; color:#c9b8ff; cursor:pointer; max-width:200px; }
+
+    /* ── Status pill + pause/resume button ── */
+    .status-pill { display:inline-block; padding:2px 10px; border-radius:999px; font-size:0.75rem; font-weight:700; transition:background 0.2s, color 0.2s; }
+    .pill-live   { background:#1a4a2e; color:#6ee7a0; }
+    .pill-paused { background:#4a1a1a; color:#f87171; }
+    .status-pill.poll-error { outline:2px solid #f5a623; outline-offset:2px; }
+    .btn-pause-topbar { padding:4px 12px; border:none; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
+    .btn-pause-live   { background:#4a3580; color:#c9b8ff; }
+    .btn-pause-live:hover   { background:#5a4590; color:#fff; }
+    .btn-pause-paused { background:#27ae60; color:#fff; }
+    .btn-pause-paused:hover { background:#219150; }
+    .btn-pause-topbar:disabled { opacity:0.5; cursor:not-allowed; }
   </style>
 </head>
 <body>
@@ -466,8 +481,12 @@ if ($sa_pages > 1):
     <div class="stat-item">
       📸 Total <strong><?= ($counts['pending'] ?? 0) + ($counts['approved'] ?? 0) + ($counts['removed'] ?? 0) ?></strong>
     </div>
-    <div class="stat-item" title="Live — updates every 10 s">
-      <span class="poll-dot" id="poll-dot"></span>
+    <div class="stat-item">
+      <span class="status-pill <?= $is_active ? 'pill-live' : 'pill-paused' ?>"
+            id="status-pill"
+            title="Updates every 10 s">
+        <?= $is_active ? 'Live' : 'Paused' ?>
+      </span>
     </div>
   </div>
   <div class="nav-links">
@@ -484,6 +503,11 @@ if ($sa_pages > 1):
       </select>
     </form>
     <?php endif; ?>
+    <button class="btn-pause-topbar <?= $is_active ? 'btn-pause-live' : 'btn-pause-paused' ?>"
+            id="btn-pause-toggle"
+            title="<?= $is_active ? 'Pause the gallery — guests will see a paused message' : 'Resume the gallery for guests' ?>">
+      <?= $is_active ? '⏸ Pause' : '▶ Resume' ?>
+    </button>
     <a class="signout" href="index.php?logout=<?= urlencode($csrf) ?>">Sign out</a>
   </div>
 </div>
@@ -991,9 +1015,49 @@ if ($sa_pages > 1):
     }
   }
 
-  // ── Polling ──────────────────────────────────────────────────
-  const dot = document.getElementById('poll-dot');
+  // ── Pause / Resume ───────────────────────────────────────────
+  var partyIsActive = <?= json_encode($is_active) ?>;
+  var pauseBtn      = document.getElementById('btn-pause-toggle');
+  var statusPill    = document.getElementById('status-pill');
 
+  function updatePauseUI(active) {
+    partyIsActive = active;
+    if (statusPill) {
+      statusPill.textContent = active ? 'Live' : 'Paused';
+      statusPill.className   = 'status-pill ' + (active ? 'pill-live' : 'pill-paused');
+    }
+    if (pauseBtn) {
+      pauseBtn.textContent = active ? '⏸ Pause' : '▶ Resume';
+      pauseBtn.className   = 'btn-pause-topbar ' + (active ? 'btn-pause-live' : 'btn-pause-paused');
+      pauseBtn.title       = active
+        ? 'Pause the gallery — guests will see a paused message'
+        : 'Resume the gallery for guests';
+    }
+  }
+
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', function () {
+      var newActive = partyIsActive ? 0 : 1;
+      pauseBtn.disabled = true;
+      fetch('toggle_status.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ csrf_token: CSRF, active: newActive }),
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        pauseBtn.disabled = false;
+        if (data.ok) {
+          updatePauseUI(data.active);
+        } else {
+          alert('Error: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(function () { pauseBtn.disabled = false; alert('Network error. Please try again.'); });
+    });
+  }
+
+  // ── Polling ──────────────────────────────────────────────────
   function poll() {
     fetch('poll.php', { cache: 'no-store' })
       .then(r => {
@@ -1003,7 +1067,8 @@ if ($sa_pages > 1):
       })
       .then(data => {
         if (!data || !data.ok) return;
-        if (dot) dot.classList.remove('error');
+        if (statusPill) statusPill.classList.remove('poll-error');
+        if (typeof data.is_active !== 'undefined') updatePauseUI(!!data.is_active);
         syncPendingUI(data.counts.pending);
         setStat('stat-approved', data.counts.approved);
         syncRemovedUI(data.counts.removed);
@@ -1013,7 +1078,7 @@ if ($sa_pages > 1):
         const purgeBtn = document.getElementById('btn-purge-all');
         if (purgeBtn) purgeBtn.disabled = data.counts.removed === 0;
       })
-      .catch(() => { if (dot) dot.classList.add('error'); });
+      .catch(() => { if (statusPill) statusPill.classList.add('poll-error'); });
   }
 
   setInterval(poll, 10000);

@@ -30,6 +30,7 @@ if ($party_id === 0) {
     exit(json_encode(['ok' => false, 'error' => 'No party assigned.']));
 }
 
+$party    = mpd_get_party_by_id($party_id);
 $counts   = db_count_photos_by_status($party_id);
 $pending  = db_get_photos('pending',  $party_id);
 $approved = db_get_photos('approved', $party_id);
@@ -46,9 +47,10 @@ $slim = fn(array $p) => [
 ];
 
 echo json_encode([
-    'ok'      => true,
-    'counts'  => $counts,
-    'pending' => array_map($slim, $pending),
-    'approved'=> array_map($slim, $approved),
-    'removed' => array_map($slim, $removed),
+    'ok'        => true,
+    'is_active' => $party ? (bool)$party['is_active'] : true,
+    'counts'    => $counts,
+    'pending'   => array_map($slim, $pending),
+    'approved'  => array_map($slim, $approved),
+    'removed'   => array_map($slim, $removed),
 ]);
