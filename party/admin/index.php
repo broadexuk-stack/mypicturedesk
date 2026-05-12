@@ -500,7 +500,7 @@ if ($sa_pages > 1):
       <select class="party-switch-sel" id="party-switch-sel" name="party_id" aria-label="Switch party">
         <?php foreach ($org_parties as $p): ?>
           <option value="<?= (int)$p['id'] ?>" <?= (int)$p['id'] === $party_id ? 'selected' : '' ?>>
-            <?= htmlspecialchars($p['party_name']) ?>
+            <?= $p['is_active'] ? '▶' : '⏸' ?> <?= htmlspecialchars($p['party_name']) ?>
           </option>
         <?php endforeach; ?>
       </select>
