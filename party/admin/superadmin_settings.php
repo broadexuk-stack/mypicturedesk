@@ -40,6 +40,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $action = $_POST['action'] ?? '';
 
+        if ($action === 'save_retention') {
+            $max_days     = max(1, (int)($_POST['retention_max_days']     ?? 365));
+            $default_days = max(1, min($max_days, (int)($_POST['retention_default_days'] ?? 30)));
+            mpd_update_setting('retention_max_days',     (string)$max_days);
+            mpd_update_setting('retention_default_days', (string)$default_days);
+            $success = 'Retention settings saved.';
+        }
+
         if ($action === 'save_templates') {
             mpd_update_setting('email_welcome_body', trim($_POST['email_welcome_body'] ?? '') ?: null);
             mpd_update_setting('email_notify_body',  trim($_POST['email_notify_body']  ?? '') ?: null);
@@ -137,6 +145,36 @@ $s = mpd_get_all_settings();
   <?php elseif ($error !== ''): ?>
     <div class="msg msg-err"><?= htmlspecialchars($error) ?></div>
   <?php endif; ?>
+
+  <!-- ── Retention ── -->
+  <h2>Image Retention</h2>
+  <p style="font-size:.82rem;color:#6b5ca5;margin-bottom:20px;">
+    Controls how long photo galleries are kept before being flagged for removal. Organisers can set their own retention period within these limits.
+  </p>
+
+  <form method="post" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+    <input type="hidden" name="action" value="save_retention">
+
+    <div class="row2">
+      <div class="form-row">
+        <label for="retention_max_days">Maximum Retention (days)</label>
+        <input type="number" id="retention_max_days" name="retention_max_days" min="1"
+               value="<?= (int)($s['retention_max_days'] ?? 365) ?>">
+        <p class="hint">Organisers cannot set retention longer than this.</p>
+      </div>
+      <div class="form-row">
+        <label for="retention_default_days">Default Retention (days)</label>
+        <input type="number" id="retention_default_days" name="retention_default_days" min="1"
+               value="<?= (int)($s['retention_default_days'] ?? 30) ?>">
+        <p class="hint">Applied to new parties. Must not exceed Maximum.</p>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save Retention Settings</button>
+  </form>
+
+  <hr>
 
   <!-- ── SMTP ── -->
   <h2>Email / SMTP</h2>

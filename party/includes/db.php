@@ -289,10 +289,11 @@ function mpd_get_parties_for_organizer(int $organizer_id): array {
 
 function mpd_get_all_parties(): array {
     return db_pdo()->query(
-        'SELECT p.*, u.email AS organizer_email
+        "SELECT p.*, u.email AS organizer_email,
+                (SELECT COUNT(*) FROM photos ph WHERE ph.party_id = p.id AND ph.status != 'rejected') AS photo_count
          FROM mpd_parties p
          JOIN mpd_users u ON u.id = p.organizer_id
-         ORDER BY p.created_at DESC'
+         ORDER BY p.created_at DESC"
     )->fetchAll();
 }
 
@@ -301,13 +302,14 @@ function mpd_create_party(
     string  $party_name,
     int     $organizer_id,
     int     $created_by,
-    ?string $event_datetime = null,
-    ?string $party_info     = null,
-    ?string $notify_email   = null
+    ?string $event_datetime  = null,
+    ?string $party_info      = null,
+    ?string $notify_email    = null,
+    int     $retention_days  = 30
 ): int {
     $sql = 'INSERT INTO mpd_parties
-              (slug, party_name, organizer_id, created_by, event_datetime, party_info, notify_email)
-            VALUES (:slug, :name, :oid, :cby, :edt, :info, :notify)';
+              (slug, party_name, organizer_id, created_by, event_datetime, party_info, notify_email, retention_days)
+            VALUES (:slug, :name, :oid, :cby, :edt, :info, :notify, :ret)';
     $st = db_pdo()->prepare($sql);
     $st->execute([
         ':slug'   => $slug,
@@ -317,12 +319,13 @@ function mpd_create_party(
         ':edt'    => $event_datetime,
         ':info'   => $party_info,
         ':notify' => $notify_email,
+        ':ret'    => $retention_days,
     ]);
     return (int)db_pdo()->lastInsertId();
 }
 
 function mpd_update_party(int $id, array $fields): void {
-    $allowed = ['party_name', 'event_datetime', 'party_info', 'notify_email', 'colour_theme'];
+    $allowed = ['party_name', 'event_datetime', 'party_info', 'notify_email', 'colour_theme', 'retention_days'];
     $sets    = [];
     $params  = [':id' => $id];
     foreach ($fields as $col => $val) {

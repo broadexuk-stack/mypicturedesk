@@ -46,6 +46,9 @@ header('X-Frame-Options: DENY');
 $party   = mpd_get_party_by_id($party_id);
 if ($party === false) { header('Location: index.php'); exit; }
 
+$s_plat  = mpd_get_all_settings();
+$ret_max = max(1, (int)($s_plat['retention_max_days'] ?? 365));
+
 // Organizer may only edit their own party
 if ($role === 'organizer' && (int)$party['organizer_id'] !== $user_id) {
     header('Location: index.php'); exit;
@@ -59,10 +62,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($csrf, $submitted_csrf)) {
         $error = 'Invalid request. Please try again.';
     } else {
-        $name    = mb_substr(trim($_POST['party_name']      ?? ''), 0, 200);
-        $edt     = trim($_POST['event_datetime'] ?? '');
-        $info    = mb_substr(trim($_POST['party_info']      ?? ''), 0, 1000);
-        $notify  = trim($_POST['notify_email'] ?? '');
+        $name     = mb_substr(trim($_POST['party_name']      ?? ''), 0, 200);
+        $edt      = trim($_POST['event_datetime'] ?? '');
+        $info     = mb_substr(trim($_POST['party_info']      ?? ''), 0, 1000);
+        $notify   = trim($_POST['notify_email'] ?? '');
+        $ret_raw  = (int)($_POST['retention_days'] ?? (int)($party['retention_days'] ?? 30));
+        $ret_days = max(1, min($ret_max, $ret_raw));
 
         if ($name === '') {
             $error = 'Party name is required.';
@@ -74,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'event_datetime' => $edt !== '' ? $edt : null,
                 'party_info'     => $info !== '' ? $info : null,
                 'notify_email'   => $notify !== '' ? $notify : null,
+                'retention_days' => $ret_days,
             ]);
             $party   = mpd_get_party_by_id($party_id); // reload
             $success = 'Settings saved.';
@@ -111,7 +117,7 @@ if (!empty($party['event_datetime'])) {
     .msg-err { background: #4a1a1a; color: #f87171; }
     .form-row { margin-bottom: 18px; }
     label { display: block; font-size: 0.82rem; font-weight: 700; color: #c9b8ff; margin-bottom: 5px; }
-    input[type=text], input[type=email], input[type=datetime-local], textarea {
+    input[type=text], input[type=email], input[type=number], input[type=datetime-local], textarea {
       width: 100%; padding: 10px 14px; border-radius: 8px; border: 2px solid #4b35a0;
       background: #160f35; color: #f0ebff; font-size: 0.9rem; font-family: inherit;
     }
@@ -177,6 +183,13 @@ if (!empty($party['event_datetime'])) {
              value="<?= htmlspecialchars($party['notify_email'] ?? '') ?>"
              placeholder="Receives an alert on each new upload">
       <p class="hint">Leave blank to disable upload notifications.</p>
+    </div>
+
+    <div class="form-row">
+      <label for="retention_days">Photo Retention Period (days)</label>
+      <input type="number" id="retention_days" name="retention_days" min="1" max="<?= $ret_max ?>"
+             value="<?= (int)($party['retention_days'] ?? 30) ?>">
+      <p class="hint">Photos will be flagged for removal after this many days. Maximum allowed: <?= $ret_max ?> days.</p>
     </div>
 
     <div class="form-row">

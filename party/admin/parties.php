@@ -41,6 +41,10 @@ $success          = '';
 $error            = '';
 $party_modal_open = false;
 
+$s_plat      = mpd_get_all_settings();
+$ret_max     = max(1, (int)($s_plat['retention_max_days']     ?? 365));
+$ret_default = max(1, (int)($s_plat['retention_default_days'] ?? 30));
+
 // ── Handle POST actions ──────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $submitted_csrf = $_POST['csrf_token'] ?? '';
@@ -58,6 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $edt         = trim($_POST['event_datetime'] ?? '');
             $info        = trim($_POST['party_info'] ?? '');
             $notify      = trim($_POST['notify_email'] ?? '');
+            $ret_raw     = (int)($_POST['retention_days'] ?? $ret_default);
+            $party_ret   = max(1, min($ret_max, $ret_raw));
             $me          = (int)$_SESSION['mpd_user_id'];
             $org_id      = 0;
 
@@ -102,7 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $slug, $name, $org_id, $me,
                         $edt    !== '' ? $edt    : null,
                         $info   !== '' ? $info   : null,
-                        $notify !== '' ? $notify : null
+                        $notify !== '' ? $notify : null,
+                        $party_ret
                     );
                     mpd_ensure_party_dirs($slug);
 
@@ -240,6 +247,8 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     .active-pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
     .pill-active   { background: #1a4a2e; color: #6ee7a0; }
     .pill-inactive { background: #4a1a1a; color: #f87171; }
+    .pill-remove   { background: #7a1a1a; color: #f87171; }
+    .party-table td + td, .party-table th + th { border-left: 1px solid rgba(100,80,170,0.35); }
     .guest-link { color: #9c7fff; font-size: 0.75rem; }
     .action-cell { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
     .inline-form { display: inline; }
@@ -301,12 +310,16 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
           <th>Slug / URL</th>
           <th>Organiser</th>
           <th>Event Date</th>
+          <th>Photos</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($parties as $pt): ?>
+        <?php foreach ($parties as $pt):
+            $is_expired = (int)$pt['retention_days'] > 0
+                && time() > strtotime($pt['created_at']) + (int)$pt['retention_days'] * 86400;
+        ?>
         <tr>
           <td><?= htmlspecialchars($pt['party_name']) ?></td>
           <td>
@@ -315,10 +328,15 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
           </td>
           <td><?= htmlspecialchars($pt['organizer_email']) ?></td>
           <td><?= $pt['event_datetime'] ? htmlspecialchars(date('d M Y H:i', strtotime($pt['event_datetime']))) : '—' ?></td>
+          <td style="text-align:center;"><?= (int)$pt['photo_count'] ?></td>
           <td>
-            <span class="active-pill <?= $pt['is_active'] ? 'pill-active' : 'pill-inactive' ?>">
-              <?= $pt['is_active'] ? 'Live' : 'Paused' ?>
-            </span>
+            <?php if ($is_expired): ?>
+              <span class="active-pill pill-remove" title="Retention period of <?= (int)$pt['retention_days'] ?> days exceeded">Remove</span>
+            <?php else: ?>
+              <span class="active-pill <?= $pt['is_active'] ? 'pill-active' : 'pill-inactive' ?>">
+                <?= $pt['is_active'] ? 'Live' : 'Paused' ?>
+              </span>
+            <?php endif; ?>
           </td>
           <td>
             <div class="action-cell">
@@ -438,6 +456,13 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
         <input type="email" id="notify_email" name="notify_email"
                value="<?= htmlspecialchars($_POST['notify_email'] ?? '') ?>"
                placeholder="Receives an email on each new upload">
+      </div>
+
+      <div class="form-row">
+        <label for="retention_days">Retention Period (days)</label>
+        <input type="number" id="retention_days" name="retention_days" min="1" max="<?= $ret_max ?>"
+               value="<?= (int)($_POST['retention_days'] ?? $ret_default) ?>">
+        <p class="hint">Photos will be flagged for removal after this many days. Platform maximum: <?= $ret_max ?> days.</p>
       </div>
 
       <button type="submit" class="btn btn-primary">Create Party</button>
