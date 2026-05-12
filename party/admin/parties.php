@@ -250,7 +250,7 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     .pill-remove   { background: #7a1a1a; color: #f87171; }
     .party-table td + td, .party-table th + th { border-left: 1px solid rgba(100,80,170,0.35); }
     .guest-link { color: #9c7fff; font-size: 0.75rem; }
-    .action-cell { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .action-cell { display: flex; flex-wrap: nowrap; gap: 6px; align-items: center; }
     .inline-form { display: inline; }
 
     /* Modal */
