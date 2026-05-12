@@ -42,8 +42,12 @@ if ($party_slug === '') {
 }
 
 $party = mpd_get_party_by_slug($party_slug);
-if ($party === false || !$party['is_active']) {
+if ($party === false) {
     json_error(404, 'This party is not available.');
+}
+if (!$party['is_active']) {
+    http_response_code(503);
+    exit(json_encode(['ok' => false, 'error' => 'The gallery has been paused.', 'party_paused' => true]));
 }
 
 $party_id = (int)$party['id'];

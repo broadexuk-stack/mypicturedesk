@@ -39,6 +39,7 @@ header('Referrer-Policy: same-origin');
 
 $party_name     = $party_found ? htmlspecialchars($party['party_name']) : 'MyPictureDesk';
 $organiser_name = $party_found && !empty($party['organiser_name']) ? htmlspecialchars($party['organiser_name']) : '';
+$organiser_raw  = $party_found && !empty($party['organiser_name']) ? $party['organiser_name'] : '';
 $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($party['party_info']) : '';
 ?>
 <!DOCTYPE html>
@@ -159,6 +160,13 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
           Uploading as <strong id="name-byline-text"></strong> &middot;
           <button type="button" id="btn-change-name" class="name-change-btn">change</button>
         </p>
+
+        <!-- Shown by JS if the party is paused while the page is open -->
+        <div id="paused-banner" hidden class="result-ui result-paused">
+          <div class="result-emoji" aria-hidden="true">⏸️</div>
+          <p class="result-text">Gallery Paused</p>
+          <p class="result-sub" id="paused-banner-msg">The photo gallery has been paused.</p>
+        </div>
       </div>
 
       <!-- ── Preview state ── -->
@@ -174,6 +182,11 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
           <button id="btn-retake" class="btn btn-retake" type="button">
             🔄 Retake
           </button>
+        </div>
+
+        <!-- Shown by JS if the party is paused while a photo is ready to upload -->
+        <div id="paused-preview-warning" hidden class="paused-preview-warning">
+          <p>⏸️ The gallery has been paused — your photo is safe. The upload button will be re-enabled once the organiser opens the gallery again.</p>
         </div>
 
         <div id="progress-wrap" hidden>
@@ -281,11 +294,12 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
   <!-- Pass CSRF token and config to JS -->
   <script nonce="<?= $nonce ?>">
     window.PARTY_CONFIG = {
-      csrfToken:   <?= json_encode($csrf) ?>,
-      partySlug:   <?= json_encode($slug) ?>,
-      uploadUrl:   'upload.php',
-      galleryUrl:  'gallery.php?json=1&id=' + <?= json_encode($slug) ?>,
-      refreshMs:   30000
+      csrfToken:    <?= json_encode($csrf) ?>,
+      partySlug:    <?= json_encode($slug) ?>,
+      organiserName: <?= json_encode($organiser_raw) ?>,
+      uploadUrl:    'upload.php',
+      galleryUrl:   'gallery.php?json=1&id=' + <?= json_encode($slug) ?>,
+      refreshMs:    30000
     };
   </script>
   <script src="assets/app.js"></script>

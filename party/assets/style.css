@@ -670,6 +670,18 @@ a:hover { color: var(--clr-gold-dark); }
   font-weight: 700;
 }
 
+/* ── Paused-while-open warning (shown in preview state) ─────── */
+.paused-preview-warning {
+  width: 100%;
+  background: rgba(45, 27, 105, 0.85);
+  border: 1px solid #6b5ca5;
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  color: var(--clr-text-muted);
+  text-align: center;
+}
+
 /* ── Utilities ───────────────────────────────────────────────── */
 [hidden] { display: none !important; }
 

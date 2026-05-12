@@ -29,8 +29,16 @@ if ($slug === '') {
 }
 
 $party = mpd_get_party_by_slug($slug);
-if ($party === false || !$party['is_active']) {
-    echo json_encode(['photos' => []]);
+if ($party === false) {
+    echo json_encode(['photos' => [], 'active' => false]);
+    exit;
+}
+if (!$party['is_active']) {
+    echo json_encode([
+        'photos'         => [],
+        'active'         => false,
+        'organiser_name' => $party['organiser_name'] ?? '',
+    ]);
     exit;
 }
 
@@ -54,4 +62,4 @@ foreach ($photos as $p) {
     ];
 }
 
-echo json_encode(['photos' => $response], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+echo json_encode(['photos' => $response, 'active' => true], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

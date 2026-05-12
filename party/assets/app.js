@@ -44,6 +44,13 @@
   let selectedFile = null;
   // Timer for success countdown
   let countdownInterval = null;
+  // Paused-state tracking
+  let isPaused      = false;
+  let currentState  = 'camera';
+
+  const pausedBanner         = document.getElementById('paused-banner');
+  const pausedBannerMsg      = document.getElementById('paused-banner-msg');
+  const pausedPreviewWarning = document.getElementById('paused-preview-warning');
 
   // ── Name management ──────────────────────────────────────────
   const NAME_KEY   = 'party_uploader_name';
@@ -130,11 +137,64 @@
 
   function showState(state) {
     // state: 'camera' | 'preview' | 'success' | 'error'
+    currentState = state;
     uploadUI.hidden  = state !== 'camera';
     previewUI.hidden = state !== 'preview';
     successUI.hidden = state !== 'success';
     errorUI.hidden   = state !== 'error';
     progressWrap.hidden = true;
+
+    if (isPaused) {
+      if (state === 'camera') {
+        cameraLabel.hidden = true;
+        pausedBanner.hidden = false;
+        pausedPreviewWarning.hidden = true;
+      } else if (state === 'preview') {
+        btnUpload.disabled = true;
+        pausedPreviewWarning.hidden = false;
+        pausedBanner.hidden = true;
+      } else {
+        pausedPreviewWarning.hidden = true;
+      }
+    }
+  }
+
+  function showPaused(organiserName) {
+    if (isPaused) return;
+    isPaused = true;
+
+    cameraInput.disabled  = true;
+    libraryInput.disabled = true;
+
+    const who = organiserName || window.PARTY_CONFIG.organiserName || '';
+    pausedBannerMsg.textContent = who
+      ? 'The gallery has been paused. Please speak to ' + who + '.'
+      : 'The gallery has been paused.';
+
+    if (currentState === 'camera') {
+      cameraLabel.hidden = true;
+      pausedBanner.hidden = false;
+    } else if (currentState === 'preview') {
+      btnUpload.disabled = true;
+      progressWrap.hidden = true;
+      pausedPreviewWarning.hidden = false;
+    }
+  }
+
+  function hidePaused() {
+    if (!isPaused) return;
+    isPaused = false;
+
+    cameraInput.disabled  = false;
+    libraryInput.disabled = false;
+
+    if (currentState === 'camera') {
+      cameraLabel.hidden = false;
+      pausedBanner.hidden = true;
+    } else if (currentState === 'preview') {
+      btnUpload.disabled = false;
+      pausedPreviewWarning.hidden = true;
+    }
   }
 
   function resetToCamera() {
@@ -219,8 +279,8 @@
     });
 
     xhr.addEventListener('load', () => {
-      btnUpload.disabled = false;
       btnRetake.disabled = false;
+      if (!isPaused) btnUpload.disabled = false;
 
       let data;
       try {
@@ -234,20 +294,23 @@
         showSuccess();
         // Trigger an immediate gallery refresh so the admin sees the new upload
         loadGallery();
+      } else if (data.party_paused) {
+        progressWrap.hidden = true;
+        showPaused(data.organiser_name || '');
       } else {
         showError(data.error || 'Upload failed. Please try again.');
       }
     });
 
     xhr.addEventListener('error', () => {
-      btnUpload.disabled = false;
       btnRetake.disabled = false;
+      if (!isPaused) btnUpload.disabled = false;
       showError('Network error. Check your connection and try again.');
     });
 
     xhr.addEventListener('abort', () => {
-      btnUpload.disabled = false;
       btnRetake.disabled = false;
+      if (!isPaused) btnUpload.disabled = false;
       showError('Upload was cancelled. Please try again.');
     });
 
@@ -290,13 +353,21 @@
   function loadGallery() {
     fetch(galleryUrl, { cache: 'no-store' })
       .then(r => r.json())
-      .then(data => renderGallery(data.photos || []))
+      .then(data => renderGallery(data))
       .catch(() => {
         // Silent failure on refresh — don't disrupt the UI
       });
   }
 
-  function renderGallery(photos) {
+  function renderGallery(data) {
+    if (data.active === false) {
+      showPaused(data.organiser_name || '');
+      return;
+    }
+    if (isPaused) hidePaused();
+
+    const photos = data.photos || [];
+
     if (photos.length === 0) {
       if (knownUuids.size === 0) {
         // First load with no photos yet
