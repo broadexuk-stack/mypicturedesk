@@ -490,10 +490,10 @@ if ($sa_pages > 1):
 
 <!-- Organizer quick-nav -->
 <nav class="org-nav">
-  <a class="org-nav-link" href="organizer_settings.php">⚙️ Party Settings</a>
-  <a class="org-nav-link" href="qrcode.php">📱 QR Code</a>
-  <a class="org-nav-link" href="download_gallery.php" <?= empty($approved) ? 'aria-disabled="true" style="opacity:.4;pointer-events:none"' : '' ?>>⬇ Download Gallery</a>
-  <a class="org-nav-link" href="../slideshow.php?id=<?= urlencode($party_slug) ?>" target="_blank" <?= empty($approved) ? 'aria-disabled="true" style="opacity:.4;pointer-events:none"' : '' ?>>▶ Slideshow</a>
+  <a class="org-nav-link" href="organizer_settings.php" title="Change or update the configuration of your party">⚙️ Party Settings</a>
+  <a class="org-nav-link" href="qrcode.php" title="Download a QR Code for people to scan to take pictures">📱 QR Code</a>
+  <a class="org-nav-link" href="download_gallery.php" title="Download a zip file containing all your party pictures" <?= empty($approved) ? 'aria-disabled="true" style="opacity:.4;pointer-events:none"' : '' ?>>⬇ Download Gallery</a>
+  <a class="org-nav-link" href="../slideshow.php?id=<?= urlencode($party_slug) ?>" target="_blank" title="Open a slideshow window to display all your pictures" <?= empty($approved) ? 'aria-disabled="true" style="opacity:.4;pointer-events:none"' : '' ?>>▶ Slideshow</a>
 </nav>
 
 <div class="admin-body">
@@ -525,8 +525,8 @@ if ($sa_pages > 1):
           IP: <?= htmlspecialchars($p['ip_display']) ?>
         </div>
         <div class="card-actions">
-          <button class="btn-approve" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="approve" data-section="pending" aria-label="Approve">✅</button>
-          <button class="btn-remove"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove"  data-section="pending" aria-label="Move to wastebasket">🗑️</button>
+          <button class="btn-approve" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="approve" data-section="pending" aria-label="Approve" title="Move this image into your gallery">✅</button>
+          <button class="btn-remove"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove"  data-section="pending" aria-label="Move to wastebasket" title="Move this picture into the wastebasket before removal">🗑️</button>
           <a class="btn-dl-photo" href="<?= htmlspecialchars(full_url($p, $party_slug)) ?>" download="<?= htmlspecialchars(dl_filename($p)) ?>" aria-label="Download">⬇</a>
         </div>
       </div>
@@ -571,7 +571,7 @@ if ($sa_pages > 1):
           IP: <?= htmlspecialchars($p['ip_display']) ?>
         </div>
         <div class="card-actions">
-          <button class="btn-remove" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove" data-section="approved" aria-label="Move to wastebasket">🗑️ Remove</button>
+          <button class="btn-remove" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove" data-section="approved" aria-label="Move to wastebasket" title="Move this picture into the wastebasket before removal">🗑️ Remove</button>
           <a class="btn-dl-photo" href="<?= htmlspecialchars(full_url($p, $party_slug)) ?>" download="<?= htmlspecialchars(dl_filename($p)) ?>" aria-label="Download">⬇</a>
         </div>
       </div>
@@ -589,7 +589,8 @@ if ($sa_pages > 1):
     </div>
     <button class="btn-purge" id="btn-purge-all"
             <?= empty($removed) ? 'disabled' : '' ?>
-            aria-label="Permanently delete all wastebasket photos">
+            aria-label="Permanently delete all wastebasket photos"
+            title="Permanently delete all images in your wastebasket">
       🗑️ Empty Wastebasket
     </button>
   </div>
@@ -941,11 +942,11 @@ if ($sa_pages > 1):
     let actions = '';
     const dlLink = `<a class="btn-dl-photo" href="${escHtml(fullUrl(p))}" download="${escHtml(dlFilename(p))}" aria-label="Download">⬇</a>`;
     if (section === 'pending') {
-      actions = `<button class="btn-approve" data-uuid="${escHtml(p.uuid)}" data-action="approve" data-section="pending" aria-label="Approve">✅</button>`
-              + `<button class="btn-remove"  data-uuid="${escHtml(p.uuid)}" data-action="remove"  data-section="pending" aria-label="Move to wastebasket">🗑️</button>`
+      actions = `<button class="btn-approve" data-uuid="${escHtml(p.uuid)}" data-action="approve" data-section="pending" aria-label="Approve" title="Move this image into your gallery">✅</button>`
+              + `<button class="btn-remove"  data-uuid="${escHtml(p.uuid)}" data-action="remove"  data-section="pending" aria-label="Move to wastebasket" title="Move this picture into the wastebasket before removal">🗑️</button>`
               + dlLink;
     } else if (section === 'approved') {
-      actions = `<button class="btn-remove" data-uuid="${escHtml(p.uuid)}" data-action="remove" data-section="approved" aria-label="Move to wastebasket">🗑️ Remove</button>` + dlLink;
+      actions = `<button class="btn-remove" data-uuid="${escHtml(p.uuid)}" data-action="remove" data-section="approved" aria-label="Move to wastebasket" title="Move this picture into the wastebasket before removal">🗑️ Remove</button>` + dlLink;
     } else {
       actions = `<button class="btn-restore" data-uuid="${escHtml(p.uuid)}" data-action="restore" data-section="removed" aria-label="Restore">↩️ Restore</button>`
               + `<button class="btn-reject"  data-uuid="${escHtml(p.uuid)}" data-action="reject"  data-section="removed" aria-label="Delete permanently">✕</button>`
