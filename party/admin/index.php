@@ -527,7 +527,7 @@ if ($sa_pages > 1):
         <div class="card-actions">
           <button class="btn-approve" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="approve" data-section="pending" aria-label="Approve" title="Move this image into your gallery">✅</button>
           <button class="btn-remove"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove"  data-section="pending" aria-label="Move to wastebasket" title="Move this picture into the wastebasket before removal">🗑️</button>
-          <a class="btn-dl-photo" href="<?= htmlspecialchars(full_url($p, $party_slug)) ?>" download="<?= htmlspecialchars(dl_filename($p)) ?>" aria-label="Download">⬇</a>
+          <a class="btn-dl-photo" href="<?= htmlspecialchars(full_url($p, $party_slug)) ?>" download="<?= htmlspecialchars(dl_filename($p)) ?>" aria-label="Download" title="Download this picture to your device">⬇</a>
         </div>
       </div>
       <?php endforeach; ?>
@@ -545,7 +545,8 @@ if ($sa_pages > 1):
     <a href="download_gallery.php"
        class="btn-dl-gallery"
        <?= empty($approved) ? 'aria-disabled="true"' : '' ?>
-       aria-label="Download all gallery photos as ZIP">
+       aria-label="Download all gallery photos as ZIP"
+       title="Download a zip file containing all your party pictures">
       ⬇ Download Gallery
     </a>
   </div>
@@ -572,7 +573,7 @@ if ($sa_pages > 1):
         </div>
         <div class="card-actions">
           <button class="btn-remove" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="remove" data-section="approved" aria-label="Move to wastebasket" title="Move this picture into the wastebasket before removal">🗑️ Remove</button>
-          <a class="btn-dl-photo" href="<?= htmlspecialchars(full_url($p, $party_slug)) ?>" download="<?= htmlspecialchars(dl_filename($p)) ?>" aria-label="Download">⬇</a>
+          <a class="btn-dl-photo" href="<?= htmlspecialchars(full_url($p, $party_slug)) ?>" download="<?= htmlspecialchars(dl_filename($p)) ?>" aria-label="Download" title="Download this picture to your device">⬇</a>
         </div>
       </div>
       <?php endforeach; ?>
@@ -618,7 +619,7 @@ if ($sa_pages > 1):
       <div class="card-actions">
         <button class="btn-restore" data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="restore" data-section="removed" aria-label="Restore to gallery">↩️ Restore</button>
         <button class="btn-reject"  data-uuid="<?= htmlspecialchars($p['uuid']) ?>" data-action="reject"  data-section="removed" aria-label="Delete permanently">✕</button>
-        <a class="btn-dl-photo" href="<?= htmlspecialchars(full_url($p, $party_slug)) ?>" download="<?= htmlspecialchars(dl_filename($p)) ?>" aria-label="Download">⬇</a>
+        <a class="btn-dl-photo" href="<?= htmlspecialchars(full_url($p, $party_slug)) ?>" download="<?= htmlspecialchars(dl_filename($p)) ?>" aria-label="Download" title="Download this picture to your device">⬇</a>
       </div>
     </div>
     <?php endforeach; ?>
@@ -940,7 +941,7 @@ if ($sa_pages > 1):
     div.dataset.filetype = (rawExt === 'heic' && section === 'approved') ? 'JPG' : rawExt.toUpperCase();
 
     let actions = '';
-    const dlLink = `<a class="btn-dl-photo" href="${escHtml(fullUrl(p))}" download="${escHtml(dlFilename(p))}" aria-label="Download">⬇</a>`;
+    const dlLink = `<a class="btn-dl-photo" href="${escHtml(fullUrl(p))}" download="${escHtml(dlFilename(p))}" aria-label="Download" title="Download this picture to your device">⬇</a>`;
     if (section === 'pending') {
       actions = `<button class="btn-approve" data-uuid="${escHtml(p.uuid)}" data-action="approve" data-section="pending" aria-label="Approve" title="Move this image into your gallery">✅</button>`
               + `<button class="btn-remove"  data-uuid="${escHtml(p.uuid)}" data-action="remove"  data-section="pending" aria-label="Move to wastebasket" title="Move this picture into the wastebasket before removal">🗑️</button>`
