@@ -493,6 +493,7 @@ if ($sa_pages > 1):
   <a class="org-nav-link" href="organizer_settings.php">⚙️ Party Settings</a>
   <a class="org-nav-link" href="qrcode.php">📱 QR Code</a>
   <a class="org-nav-link" href="download_gallery.php" <?= empty($approved) ? 'aria-disabled="true" style="opacity:.4;pointer-events:none"' : '' ?>>⬇ Download Gallery</a>
+  <a class="org-nav-link" href="../slideshow.php?id=<?= urlencode($party_slug) ?>" target="_blank" <?= empty($approved) ? 'aria-disabled="true" style="opacity:.4;pointer-events:none"' : '' ?>>▶ Slideshow</a>
 </nav>
 
 <div class="admin-body">
