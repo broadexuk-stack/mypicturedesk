@@ -161,12 +161,6 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
           <button type="button" id="btn-change-name" class="name-change-btn">change</button>
         </p>
 
-        <!-- Shown by JS if the party is paused while the page is open -->
-        <div id="paused-banner" hidden class="result-ui result-paused">
-          <div class="result-emoji" aria-hidden="true">⏸️</div>
-          <p class="result-text">Gallery Paused</p>
-          <p class="result-sub" id="paused-banner-msg">The photo gallery has been paused.</p>
-        </div>
       </div>
 
       <!-- ── Preview state ── -->
@@ -182,11 +176,6 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
           <button id="btn-retake" class="btn btn-retake" type="button">
             🔄 Retake
           </button>
-        </div>
-
-        <!-- Shown by JS if the party is paused while a photo is ready to upload -->
-        <div id="paused-preview-warning" hidden class="paused-preview-warning">
-          <p>⏸️ The gallery has been paused — your photo is safe. The upload button will be re-enabled once the organiser opens the gallery again.</p>
         </div>
 
         <div id="progress-wrap" hidden>
@@ -274,6 +263,15 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
         <h3>Questions?</h3>
         <p>The MyPictureDesk platform provides the technology for this gallery, but the Party Organizer manages the specific event. For questions regarding how the photos will be used, shared, or distributed beyond this 30-day window, please contact the event organizer directly.</p>
       </div>
+    </div>
+  </div>
+
+  <!-- Paused-while-open overlay (full-screen, dismisses when party is re-enabled) -->
+  <div id="paused-modal" class="paused-modal" hidden role="dialog" aria-modal="true" aria-labelledby="paused-modal-title">
+    <div class="paused-modal-card">
+      <p class="paused-modal-emoji" aria-hidden="true">⏸️</p>
+      <h2 class="paused-modal-title" id="paused-modal-title">Gallery Paused</h2>
+      <p class="paused-modal-msg" id="paused-modal-msg">The photo gallery has been paused.</p>
     </div>
   </div>
 

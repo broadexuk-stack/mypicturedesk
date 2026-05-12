@@ -48,9 +48,8 @@
   let isPaused      = false;
   let currentState  = 'camera';
 
-  const pausedBanner         = document.getElementById('paused-banner');
-  const pausedBannerMsg      = document.getElementById('paused-banner-msg');
-  const pausedPreviewWarning = document.getElementById('paused-preview-warning');
+  const pausedModal    = document.getElementById('paused-modal');
+  const pausedModalMsg = document.getElementById('paused-modal-msg');
 
   // ── Name management ──────────────────────────────────────────
   const NAME_KEY   = 'party_uploader_name';
@@ -144,19 +143,8 @@
     errorUI.hidden   = state !== 'error';
     progressWrap.hidden = true;
 
-    if (isPaused) {
-      if (state === 'camera') {
-        cameraLabel.hidden = true;
-        pausedBanner.hidden = false;
-        pausedPreviewWarning.hidden = true;
-      } else if (state === 'preview') {
-        btnUpload.disabled = true;
-        pausedPreviewWarning.hidden = false;
-        pausedBanner.hidden = true;
-      } else {
-        pausedPreviewWarning.hidden = true;
-      }
-    }
+    // Keep upload button disabled behind the overlay when paused
+    if (isPaused && state === 'preview') btnUpload.disabled = true;
   }
 
   function showPaused(organiserName) {
@@ -165,20 +153,23 @@
 
     cameraInput.disabled  = true;
     libraryInput.disabled = true;
+    if (currentState === 'preview') {
+      btnUpload.disabled  = true;
+      progressWrap.hidden = true;
+    }
 
     const who = organiserName || window.PARTY_CONFIG.organiserName || '';
-    pausedBannerMsg.textContent = who
-      ? 'The gallery has been paused. Please speak to ' + who + '.'
-      : 'The gallery has been paused.';
-
-    if (currentState === 'camera') {
-      cameraLabel.hidden = true;
-      pausedBanner.hidden = false;
-    } else if (currentState === 'preview') {
-      btnUpload.disabled = true;
-      progressWrap.hidden = true;
-      pausedPreviewWarning.hidden = false;
+    if (currentState === 'preview') {
+      pausedModalMsg.textContent = who
+        ? 'Your photo is safe — the gallery has been paused by ' + who + '. It will upload as soon as the gallery reopens.'
+        : 'Your photo is safe — the gallery has been paused. It will upload as soon as the gallery reopens.';
+    } else {
+      pausedModalMsg.textContent = who
+        ? 'The gallery has been paused by ' + who + '.'
+        : 'The gallery has been paused.';
     }
+
+    pausedModal.hidden = false;
   }
 
   function hidePaused() {
@@ -187,14 +178,9 @@
 
     cameraInput.disabled  = false;
     libraryInput.disabled = false;
+    if (currentState === 'preview') btnUpload.disabled = false;
 
-    if (currentState === 'camera') {
-      cameraLabel.hidden = false;
-      pausedBanner.hidden = true;
-    } else if (currentState === 'preview') {
-      btnUpload.disabled = false;
-      pausedPreviewWarning.hidden = true;
-    }
+    pausedModal.hidden = true;
   }
 
   function resetToCamera() {
