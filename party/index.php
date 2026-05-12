@@ -8,8 +8,10 @@ require_once __DIR__ . '/includes/db.php';
 $slug  = preg_replace('/[^a-z0-9\-_]/', '', strtolower(trim($_GET['id'] ?? '')));
 $party = $slug !== '' ? mpd_get_party_by_slug($slug) : false;
 
-// Determine whether to show the error page
-$party_ok = $party !== false && (bool)$party['is_active'];
+// Determine party state
+$party_found  = $party !== false;
+$party_active = $party_found && (bool)$party['is_active'];
+$party_ok     = $party_active;
 
 // ── Session & CSRF ──────────────────────────────────────────
 ini_set('session.cookie_httponly', '1');
@@ -35,10 +37,9 @@ header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: same-origin');
 
-$party_name = $party_ok ? htmlspecialchars($party['party_name']) : 'MyPictureDesk';
-$party_info = $party_ok && !empty($party['party_info'])
-    ? htmlspecialchars($party['party_info'])
-    : '';
+$party_name     = $party_found ? htmlspecialchars($party['party_name']) : 'MyPictureDesk';
+$organiser_name = $party_found && !empty($party['organiser_name']) ? htmlspecialchars($party['organiser_name']) : '';
+$party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($party['party_info']) : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -55,8 +56,38 @@ $party_info = $party_ok && !empty($party['party_info'])
 
   <span class="version-badge" aria-hidden="true">v2.0</span>
 
-<?php if (!$party_ok): ?>
-  <!-- ── Error: no party found / inactive ─────────────────── -->
+<?php if ($party_found && !$party_active): ?>
+  <!-- ── Paused party splash ───────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <span class="header-emoji" aria-hidden="true">🎉</span>
+      <h1><?= $party_name ?></h1>
+      <span class="header-emoji" aria-hidden="true">📸</span>
+    </div>
+  </header>
+  <main id="main">
+    <section class="camera-section">
+      <div id="upload-ui">
+        <div class="result-ui result-paused" style="display:block">
+          <div class="result-emoji" aria-hidden="true">⏸️</div>
+          <p class="result-text">Gallery Paused</p>
+          <p class="result-sub">
+            The <strong><?= $party_name ?></strong> photo gallery is taking a short break &mdash; the memories aren&rsquo;t going anywhere!
+          </p>
+          <p class="result-sub">
+            <?php if ($organiser_name !== ''): ?>
+              To get back to sharing photos, please speak to <strong><?= $organiser_name ?></strong>.
+            <?php else: ?>
+              To get back to sharing photos, please speak to your party organiser.
+            <?php endif; ?>
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<?php elseif (!$party_found): ?>
+  <!-- ── Party not found ──────────────────────────────────── -->
   <header class="site-header">
     <div class="header-inner">
       <span class="header-emoji" aria-hidden="true">📸</span>
@@ -72,7 +103,7 @@ $party_info = $party_ok && !empty($party['party_info'])
           <p class="result-text">Party not found</p>
           <p class="result-sub">
             This gallery link isn&rsquo;t active.<br>
-            Please scan the QR code again or speak to your event organizer.
+            Please scan the QR code again or speak to your event organiser.
           </p>
         </div>
       </div>
@@ -87,6 +118,9 @@ $party_info = $party_ok && !empty($party['party_info'])
       <h1><?= $party_name ?></h1>
       <span class="header-emoji" aria-hidden="true">📸</span>
     </div>
+    <?php if ($organiser_name !== ''): ?>
+    <p class="header-organiser">Organised by <?= $organiser_name ?></p>
+    <?php endif; ?>
   </header>
 
   <!-- ── Camera section ─────────────────────────────────────── -->

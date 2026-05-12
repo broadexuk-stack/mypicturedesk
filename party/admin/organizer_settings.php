@@ -64,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Invalid request. Please try again.';
     } else {
         $name     = mb_substr(trim($_POST['party_name']      ?? ''), 0, 200);
+        $oname    = mb_substr(trim($_POST['organiser_name']  ?? ''), 0, 200);
         $edt      = trim($_POST['event_datetime'] ?? '');
         $info     = mb_substr(trim($_POST['party_info']      ?? ''), 0, 1000);
         $notify   = trim($_POST['notify_email'] ?? '');
@@ -77,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             mpd_update_party($party_id, [
                 'party_name'     => $name,
+                'organiser_name' => $oname !== '' ? $oname : null,
                 'event_datetime' => $edt !== '' ? $edt : null,
                 'party_info'     => $info !== '' ? $info : null,
                 'notify_email'   => $notify !== '' ? $notify : null,
@@ -178,6 +180,14 @@ if (!empty($party['event_datetime'])) {
       <label for="party_name">Party Name *</label>
       <input type="text" id="party_name" name="party_name" required maxlength="200"
              value="<?= htmlspecialchars($party['party_name']) ?>">
+    </div>
+
+    <div class="form-row">
+      <label for="organiser_name">Organiser Display Name</label>
+      <input type="text" id="organiser_name" name="organiser_name" maxlength="200"
+             value="<?= htmlspecialchars($party['organiser_name'] ?? '') ?>"
+             placeholder="e.g. Sarah &amp; James">
+      <p class="hint">Shown to guests on the party page and if the gallery is paused.</p>
     </div>
 
     <div class="form-row">

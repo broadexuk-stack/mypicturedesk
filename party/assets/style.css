@@ -96,6 +96,13 @@ a:hover { color: var(--clr-gold-dark); }
   user-select: none;
 }
 
+.header-organiser {
+  font-size: 0.82rem;
+  color: var(--clr-text-muted);
+  margin-top: 4px;
+  text-align: center;
+}
+
 /* ── Camera section ──────────────────────────────────────────── */
 .camera-section {
   display: flex;
@@ -313,6 +320,11 @@ a:hover { color: var(--clr-gold-dark); }
 .result-error {
   background: linear-gradient(135deg, #4a1a1a, #2e0f0f);
   border: 2px solid var(--clr-error);
+}
+
+.result-paused {
+  background: linear-gradient(135deg, #2d1b69, #1a0f3d);
+  border: 2px solid #6b5ca5;
 }
 
 .result-emoji { font-size: 4rem; margin-bottom: 12px; }

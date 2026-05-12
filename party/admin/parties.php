@@ -57,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'create_party') {
             $slug        = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['slug'] ?? '')));
             $name        = trim($_POST['party_name'] ?? '');
+            $oname       = mb_substr(trim($_POST['organiser_name'] ?? ''), 0, 200);
             $org_id_raw  = trim($_POST['organiser_id'] ?? '');
             $new_email   = trim($_POST['new_organiser_email'] ?? '');
             $edt         = trim($_POST['event_datetime'] ?? '');
@@ -109,7 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $edt    !== '' ? $edt    : null,
                         $info   !== '' ? $info   : null,
                         $notify !== '' ? $notify : null,
-                        $party_ret
+                        $party_ret,
+                        $oname  !== '' ? $oname  : null
                     );
                     mpd_ensure_party_dirs($slug);
 
@@ -407,6 +409,14 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
         <label for="party_name">Party Name *</label>
         <input type="text" id="party_name" name="party_name" required maxlength="200"
                value="<?= htmlspecialchars($_POST['party_name'] ?? '') ?>">
+      </div>
+
+      <div class="form-row">
+        <label for="organiser_name">Organiser Display Name</label>
+        <input type="text" id="organiser_name" name="organiser_name" maxlength="200"
+               value="<?= htmlspecialchars($_POST['organiser_name'] ?? '') ?>"
+               placeholder="e.g. Sarah &amp; James">
+        <p class="hint">Shown to guests on the party page and in any paused-gallery message.</p>
       </div>
 
       <div class="form-row">
