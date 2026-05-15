@@ -269,7 +269,7 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     /* Form */
     .form-row { margin-bottom: 16px; }
     label { display: block; font-size: 0.82rem; font-weight: 700; color: #c9b8ff; margin-bottom: 5px; }
-    input[type=text], input[type=email], input[type=datetime-local], select, textarea {
+    input[type=text], input[type=email], input[type=number], input[type=datetime-local], select, textarea {
       width: 100%; padding: 10px 14px; border-radius: 8px; border: 2px solid #4b35a0;
       background: #160f35; color: #f0ebff; font-size: 0.9rem; font-family: inherit;
     }
