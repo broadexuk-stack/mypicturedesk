@@ -609,7 +609,7 @@
         clearTimerTick();
         triggerFlash();
         playShutter();
-        setTimeout(captureFrame, 80); // brief yield so white paints before canvas work
+        setTimeout(captureFrame, 200); // wait for video pipeline to flush a flash-lit frame
       }
     }, 1000);
   }
