@@ -14,7 +14,38 @@
   'use strict';
 
   // ── Config injected by index.php ─────────────────────────────
-  const { csrfToken, partySlug, uploadUrl, galleryUrl, refreshMs } = window.PARTY_CONFIG;
+  const { csrfToken, partySlug, uploadUrl, logUrl, galleryUrl, refreshMs } = window.PARTY_CONFIG;
+
+  // ── Client-side event logging ─────────────────────────────────
+  function getClientAttrs() {
+    const attrs = {
+      'screen.width':  screen.width,
+      'screen.height': screen.height,
+      'timezone':      Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+    };
+    try { attrs['cpu.cores'] = navigator.hardwareConcurrency || null; } catch (e) {}
+    try {
+      const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      if (conn) attrs['network.type'] = conn.effectiveType || conn.type || null;
+    } catch (e) {}
+    try {
+      const gl = document.createElement('canvas').getContext('webgl');
+      if (gl) {
+        const ext = gl.getExtension('WEBGL_debug_renderer_info');
+        if (ext) attrs['gpu.renderer'] = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || null;
+      }
+    } catch (e) {}
+    return attrs;
+  }
+
+  function logEvent(event, attrs) {
+    if (!logUrl) return;
+    const fd = new FormData();
+    fd.append('csrf_token', csrfToken);
+    fd.append('event',      event);
+    fd.append('attrs',      JSON.stringify(attrs || {}));
+    fetch(logUrl, { method: 'POST', body: fd }).catch(() => {});
+  }
 
   // ── Element refs ─────────────────────────────────────────────
   const cameraInput   = document.getElementById('camera-input');
@@ -56,6 +87,7 @@
   let currentState  = 'camera';
   // Track whether the current preview came from the timer selfie camera
   let lastWasTimerSelfie = false;
+  let uploadSource = 'unknown';
 
   const pausedModal    = document.getElementById('paused-modal');
   const pausedModalMsg = document.getElementById('paused-modal-msg');
@@ -128,7 +160,7 @@
   const btnPrivacy      = document.getElementById('btn-privacy');
   const btnPrivacyClose = document.getElementById('btn-privacy-close');
 
-  btnPrivacy.addEventListener('click', () => { privacyModal.hidden = false; });
+  btnPrivacy.addEventListener('click', () => { privacyModal.hidden = false; logEvent('ui.modal.open', { 'modal.name': 'privacy' }); });
   btnPrivacyClose.addEventListener('click', () => { privacyModal.hidden = true; });
   privacyModal.addEventListener('click', (e) => { if (e.target === privacyModal) privacyModal.hidden = true; });
   document.addEventListener('keydown', (e) => {
@@ -229,11 +261,13 @@
 
   cameraInput.addEventListener('change', () => {
     lastWasTimerSelfie = false;
+    uploadSource = 'camera';
     onFileSelected(cameraInput.files[0] || null);
   });
 
   libraryInput.addEventListener('change', () => {
     lastWasTimerSelfie = false;
+    uploadSource = 'library';
     onFileSelected(libraryInput.files[0] || null);
   });
 
@@ -270,10 +304,11 @@
     progressFill.style.width = '0%';
 
     const fd = new FormData();
-    fd.append('photo',       file);
-    fd.append('csrf_token',  csrfToken);
-    fd.append('party_slug',  partySlug);
-    fd.append('uploaded_by', currentName);
+    fd.append('photo',         file);
+    fd.append('csrf_token',    csrfToken);
+    fd.append('party_slug',    partySlug);
+    fd.append('uploaded_by',   currentName);
+    fd.append('upload_source', uploadSource);
 
     const xhr = new XMLHttpRequest();
 
@@ -599,6 +634,7 @@
     ctx.drawImage(viewfinderVideo, 0, 0);
     stopCameraStream();
     lastWasTimerSelfie = true;
+    uploadSource = 'timer_selfie';
     canvas.toBlob(blob => {
       const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
       onFileSelected(file);
@@ -644,6 +680,7 @@
   showState('camera');
   loadGallery();
   setInterval(loadGallery, refreshMs);
+  logEvent('client.info', getClientAttrs());
 
   // Poll immediately when the tab becomes visible again (iOS throttles
   // setInterval while the screen is off or another app is in front)

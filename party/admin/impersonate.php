@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/includes/db.php';
+require_once dirname(__DIR__) . '/includes/logger.php';
 
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
@@ -72,6 +73,13 @@ if ($action === 'start') {
     $_SESSION['admin_csrf']     = bin2hex(random_bytes(32));
     $_SESSION['admin_last_active'] = time();
 
+    mpd_log('admin.impersonate.start', [
+        'admin.user_id'  => $_SESSION['mpd_real_user_id'],
+        'target.user_id' => $org_id,
+        'target.party_id'=> $chosen ? (int)$chosen['id'] : 0,
+        'target.party_slug' => $chosen ? $chosen['slug'] : '',
+    ]);
+
     header('Location: index.php'); exit;
 }
 
@@ -80,6 +88,12 @@ if ($action === 'stop') {
     if (empty($_SESSION['mpd_real_user_id'])) {
         header('Location: index.php'); exit;
     }
+
+    mpd_log('admin.impersonate.stop', [
+        'admin.user_id'  => $_SESSION['mpd_real_user_id'],
+        'target.user_id' => $_SESSION['mpd_user_id'],
+        'target.party_id'=> $_SESSION['mpd_party_id'] ?? 0,
+    ]);
 
     $_SESSION['mpd_user_id']  = $_SESSION['mpd_real_user_id'];
     $_SESSION['mpd_role']     = 'superadmin';

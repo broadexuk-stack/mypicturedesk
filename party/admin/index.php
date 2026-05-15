@@ -66,10 +66,13 @@ if (!$logged_in && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'
 
         $client_ip = partial_ip($_SERVER['REMOTE_ADDR'] ?? '');
 
+        $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 512);
+
         if (db_is_login_locked($email_hash)) {
             mpd_log('user.login', [
-                'event.outcome' => 'locked',
-                'client.address'=> $client_ip,
+                'event.outcome'    => 'locked',
+                'client.address'   => $client_ip,
+                'http.user_agent'  => $ua,
             ]);
             $error_msg = 'Too many failed attempts. Please wait 15 minutes and try again.';
         } else {
@@ -87,10 +90,11 @@ if (!$logged_in && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'
                 mpd_update_last_login((int)$user['id']);
 
                 mpd_log('user.login', [
-                    'event.outcome' => 'success',
-                    'user.id'       => (int)$user['id'],
-                    'user.role'     => $user['role'],
-                    'client.address'=> $client_ip,
+                    'event.outcome'   => 'success',
+                    'user.id'         => (int)$user['id'],
+                    'user.role'       => $user['role'],
+                    'client.address'  => $client_ip,
+                    'http.user_agent' => $ua,
                 ]);
 
                 // Organizer: resolve their party
@@ -106,8 +110,9 @@ if (!$logged_in && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'
             } else {
                 db_record_login_failure($email_hash);
                 mpd_log('user.login', [
-                    'event.outcome' => 'failure',
-                    'client.address'=> $client_ip,
+                    'event.outcome'   => 'failure',
+                    'client.address'  => $client_ip,
+                    'http.user_agent' => $ua,
                 ]);
                 $error_msg = 'Login failed. Please check your email and password.';
                 usleep(500_000);

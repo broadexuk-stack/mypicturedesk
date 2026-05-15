@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/includes/db.php';
+require_once dirname(__DIR__) . '/includes/logger.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -53,5 +54,11 @@ if ($role === 'organizer') {
 
 $active = (bool)(int)($_POST['active'] ?? 0);
 mpd_toggle_party_active($party_id, $active);
+
+mpd_log($active ? 'party.resumed' : 'party.paused', [
+    'party.id'  => $party_id,
+    'user.id'   => $user_id,
+    'user.role' => $role,
+]);
 
 echo json_encode(['ok' => true, 'active' => $active]);

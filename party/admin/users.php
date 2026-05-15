@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/includes/db.php';
+require_once dirname(__DIR__) . '/includes/logger.php';
 
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
@@ -66,6 +67,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       . " (link valid for 48 hours).</p>\n"
                       . "<p>If you did not request this, you can ignore this email.</p>";
                 $sent = mpd_send_email($user['email'], 'MyPictureDesk — Set your password', $body);
+                mpd_log('user.password_reset', [
+                    'target.user_id' => $uid,
+                    'email.sent'     => $sent,
+                    'user.id'        => $self_id,
+                    'user.role'      => 'superadmin',
+                    'client.address' => partial_ip($_SERVER['REMOTE_ADDR'] ?? ''),
+                ]);
                 $success = $sent
                     ? 'Password reset email sent to ' . htmlspecialchars($user['email']) . '.'
                     : 'Token generated but email could not be sent. '

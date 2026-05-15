@@ -9,6 +9,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/image.php';
+require_once __DIR__ . '/includes/logger.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -28,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // $_POST and $_FILES, which would otherwise cause a confusing
 // CSRF failure. Catch it here and return a clear size error.
 if (empty($_POST) && empty($_FILES) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+    mpd_log('photo.upload.error', ['error.type' => 'file_too_large', 'client.address' => partial_ip($_SERVER['REMOTE_ADDR'] ?? '')]);
     json_error(413, sprintf('Photo is too large. Maximum size is %d MB.', MAX_FILE_SIZE_MB));
 }
 
@@ -54,6 +56,7 @@ if ($party === false) {
     json_error(404, 'This party is not available.');
 }
 if (!$party['is_active']) {
+    mpd_log('photo.upload.error', ['error.type' => 'party_paused', 'party.slug' => $party_slug, 'client.address' => partial_ip($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0')]);
     http_response_code(503);
     exit(json_encode(['ok' => false, 'error' => 'The gallery has been paused.', 'party_paused' => true]));
 }
@@ -67,6 +70,7 @@ $ip_disp = partial_ip($raw_ip);
 
 // ── Rate limiting ───────────────────────────────────────────
 if (!db_check_rate_limit($party_id, $ip_hash)) {
+    mpd_log('photo.upload.error', ['error.type' => 'rate_limited', 'party.id' => $party_id, 'client.address' => $ip_disp]);
     json_error(429, sprintf(
         'You\'ve uploaded a lot of photos! The limit is %d per %d hours. Please try again later.',
         RATE_LIMIT_UPLOADS,
@@ -106,6 +110,7 @@ if (!is_uploaded_file($file['tmp_name'])) {
 // ── Magic-byte validation ───────────────────────────────────
 $detected_ext = validate_magic_bytes($file['tmp_name']);
 if ($detected_ext === null) {
+    mpd_log('photo.upload.error', ['error.type' => 'invalid_type', 'party.id' => $party_id, 'file.name' => $file['name'], 'file.size' => $file['size'], 'client.address' => $ip_disp]);
     json_error(400, 'This file type is not accepted. Please upload a JPEG, PNG, WebP, or HEIC photo.');
 }
 
@@ -143,6 +148,10 @@ $raw_name    = $_POST['uploaded_by'] ?? '';
 $uploaded_by = mb_substr(trim($raw_name), 0, 100, 'UTF-8');
 $uploaded_by = preg_replace('/[\x00-\x1f\x7f<>]/', '', $uploaded_by);
 
+$upload_source = in_array($_POST['upload_source'] ?? '', ['camera', 'library', 'timer_selfie'], true)
+    ? $_POST['upload_source']
+    : 'unknown';
+
 // ── Record in database ──────────────────────────────────────
 db_insert_photo($party_id, $uuid, $detected_ext, $ip_hash, $ip_disp, $uploaded_by);
 db_log_upload_attempt($party_id, $ip_hash);
@@ -163,6 +172,18 @@ if ($notify !== '' && db_count_pending($party_id) === 1) {
     ]);
     mpd_send_email($notify, $subject, $body);
 }
+
+// ── Log successful upload ────────────────────────────────────
+mpd_log('photo.upload', [
+    'party.id'       => $party_id,
+    'party.slug'     => $party['slug'],
+    'file.name'      => $file['name'],
+    'file.size'      => $file['size'],
+    'file.type'      => $detected_ext,
+    'upload.source'  => $upload_source,
+    'uploader.name'  => $uploaded_by ?: null,
+    'client.address' => $ip_disp,
+]);
 
 // ── Success ─────────────────────────────────────────────────
 echo json_encode(['ok' => true, 'message' => 'Photo received! It will appear once approved.']);

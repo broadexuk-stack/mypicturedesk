@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/logger.php';
 
 // ── Resolve party ────────────────────────────────────────────
 $slug  = preg_replace('/[^a-z0-9\-_]/', '', strtolower(trim($_GET['id'] ?? '')));
@@ -22,6 +23,15 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 $csrf = $_SESSION['csrf_token'];
+
+mpd_log('page.view', [
+    'url.full'        => BASE_URL . '/party?id=' . $slug,
+    'party.slug'      => $slug,
+    'party.id'        => $party ? (int)$party['id'] : null,
+    'party.active'    => $party_active,
+    'http.user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 512),
+    'http.referer'    => substr($_SERVER['HTTP_REFERER'] ?? '', 0, 512) ?: null,
+]);
 
 // ── Security headers ─────────────────────────────────────────
 $nonce = base64_encode(random_bytes(16));
@@ -312,6 +322,7 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
       partySlug:    <?= json_encode($slug) ?>,
       organiserName: <?= json_encode($organiser_raw) ?>,
       uploadUrl:    'upload.php',
+      logUrl:       'log_event.php',
       galleryUrl:   'gallery.php?json=1&id=' + <?= json_encode($slug) ?>,
       refreshMs:    30000,
       timerCamera:  <?= json_encode((bool)($party['timer_camera_enabled'] ?? false)) ?>

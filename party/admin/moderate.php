@@ -10,6 +10,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/includes/db.php';
 require_once dirname(__DIR__) . '/includes/image.php';
+require_once dirname(__DIR__) . '/includes/logger.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -68,6 +69,12 @@ if ($action === 'purge_all') {
         }
         db_set_photo_status($p['uuid'], $party_id, 'rejected');
     }
+    mpd_log('photo.wastebasket_emptied', [
+        'party.id'     => $party_id,
+        'photos.count' => count($removed),
+        'user.id'      => (int)($_SESSION['mpd_user_id'] ?? 0),
+        'user.role'    => $role,
+    ]);
     exit(json_encode(['ok' => true, 'action' => 'purged', 'count' => count($removed)]));
 }
 
@@ -121,6 +128,13 @@ if ($action === 'approve') {
     }
 
     db_set_photo_status($uuid, $party_id, 'approved');
+    mpd_log('photo.approved', [
+        'photo.uuid'  => $uuid,
+        'party.id'    => $party_id,
+        'party.slug'  => $party['slug'],
+        'user.id'     => (int)($_SESSION['mpd_user_id'] ?? 0),
+        'user.role'   => $role,
+    ]);
     exit(json_encode(['ok' => true, 'action' => 'approved']));
 }
 
@@ -138,17 +152,38 @@ if ($action === 'reject') {
         if (file_exists($path)) @unlink($path);
     }
     db_set_photo_status($uuid, $party_id, 'rejected');
+    mpd_log('photo.rejected', [
+        'photo.uuid' => $uuid,
+        'party.id'   => $party_id,
+        'party.slug' => $party['slug'],
+        'user.id'    => (int)($_SESSION['mpd_user_id'] ?? 0),
+        'user.role'  => $role,
+    ]);
     exit(json_encode(['ok' => true, 'action' => 'rejected']));
 }
 
 // ── remove ────────────────────────────────────────────────────
 if ($action === 'remove') {
     db_set_photo_status($uuid, $party_id, 'removed');
+    mpd_log('photo.moved_to_wastebasket', [
+        'photo.uuid' => $uuid,
+        'party.id'   => $party_id,
+        'party.slug' => $party['slug'],
+        'user.id'    => (int)($_SESSION['mpd_user_id'] ?? 0),
+        'user.role'  => $role,
+    ]);
     exit(json_encode(['ok' => true, 'action' => 'removed']));
 }
 
 // ── restore ───────────────────────────────────────────────────
 if ($action === 'restore') {
     db_set_photo_status($uuid, $party_id, 'approved');
+    mpd_log('photo.restored_from_wastebasket', [
+        'photo.uuid' => $uuid,
+        'party.id'   => $party_id,
+        'party.slug' => $party['slug'],
+        'user.id'    => (int)($_SESSION['mpd_user_id'] ?? 0),
+        'user.role'  => $role,
+    ]);
     exit(json_encode(['ok' => true, 'action' => 'restored']));
 }
