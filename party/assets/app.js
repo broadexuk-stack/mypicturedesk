@@ -516,16 +516,15 @@
   function playPip()     { playTone(880,  880,  0.08, 0.25); }
   function playShutter() { playTone(1760, 1760, 0.24, 0.35); }
 
-  // Flash — front camera only
+  // Flash — front camera only: white out now, fade after 1 s
   function triggerFlash() {
-    if (!flashOverlay || facingMode !== 'user') return;
+    if (!flashOverlay) return;
     flashOverlay.style.transition = 'none';
     flashOverlay.style.opacity = '1';
-    // Hold white for 60 ms so the browser paints it, then fade out
     setTimeout(() => {
-      flashOverlay.style.transition = 'opacity 0.5s ease-out';
+      flashOverlay.style.transition = 'opacity 0.3s ease-out';
       flashOverlay.style.opacity = '0';
-    }, 60);
+    }, 1000);
   }
 
   let cameraStream = null;
@@ -599,9 +598,13 @@
         playPip();
       } else {
         clearTimerTick();
-        playShutter();
-        triggerFlash();
-        setTimeout(captureFrame, 30); // yield so browser paints white before canvas work
+        if (facingMode === 'user') {
+          triggerFlash();                          // white out immediately
+          setTimeout(() => { playShutter(); captureFrame(); }, 500); // capture 500 ms later under white
+        } else {
+          playShutter();
+          captureFrame();
+        }
       }
     }, 1000);
   }
