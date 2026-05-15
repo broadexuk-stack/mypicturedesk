@@ -450,14 +450,10 @@ if ($sa_pages > 1):
       <p class="empty-msg">No photos found.</p>
     <?php else: ?>
       <?php foreach ($sa_photos as $p):
-        $p_slug   = $p['party_slug'] ?? '';
-        $disk_ext = output_extension($p['original_extension']);
-        $thumb_src = ($p['status'] === 'pending' || ($p['status'] === 'removed' && empty($p['approved_at'])))
-            ? 'thumb.php?uuid=' . urlencode($p['uuid']) . '&party=' . urlencode($p_slug)
-            : '../image.php?party=' . urlencode($p_slug) . '&dir=gallery_thumbs&uuid=' . urlencode($p['uuid']) . '&ext=' . urlencode($disk_ext);
-        $full_src = ($p['status'] === 'pending' || ($p['status'] === 'removed' && empty($p['approved_at'])))
-            ? 'thumb.php?uuid=' . urlencode($p['uuid']) . '&party=' . urlencode($p_slug) . '&full=1'
-            : '../image.php?party=' . urlencode($p_slug) . '&dir=gallery&uuid=' . urlencode($p['uuid']) . '&ext=' . urlencode($disk_ext);
+        $p_slug    = $p['party_slug'] ?? '';
+        $disk_ext  = output_extension($p['original_extension']);
+        $thumb_src = thumb_url($p, $p_slug);
+        $full_src  = full_url($p, $p_slug);
       ?>
       <div class="photo-card" id="sa-card-<?= htmlspecialchars($p['uuid']) ?>" role="listitem"
            data-full-url="<?= htmlspecialchars($full_src) ?>"
