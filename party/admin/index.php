@@ -216,6 +216,10 @@ $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= $page_title ?></title>
+  <?php if (cloudinary_globally_configured()): ?>
+  <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+  <link rel="dns-prefetch" href="https://res.cloudinary.com">
+  <?php endif; ?>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" nonce="<?= $nonce ?>">
   <style nonce="<?= $nonce ?>">
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

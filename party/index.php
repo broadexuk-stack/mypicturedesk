@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/logger.php';
+require_once __DIR__ . '/includes/cloudinary.php';
 
 // ── Resolve party ────────────────────────────────────────────
 $slug  = preg_replace('/[^a-z0-9\-_]/', '', strtolower(trim($_GET['id'] ?? '')));
@@ -61,6 +62,10 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
   <meta name="theme-color" content="#2d1b69">
   <title><?= $party_name ?></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <?php if (cloudinary_globally_configured()): ?>
+  <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+  <link rel="dns-prefetch" href="https://res.cloudinary.com">
+  <?php endif; ?>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" nonce="<?= $nonce ?>">
   <link rel="stylesheet" href="assets/style.css?v=<?= filemtime(__DIR__ . '/assets/style.css') ?>">
 </head>

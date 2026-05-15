@@ -123,6 +123,14 @@ function cloudinary_full_url(string $public_id): string {
          . $public_id;
 }
 
+// CDN URL for slideshow display — capped at 2560px wide to avoid
+// serving multi-megapixel originals to typical screens.
+function cloudinary_slideshow_url(string $public_id): string {
+    return 'https://res.cloudinary.com/' . CLOUDINARY_CLOUD_NAME
+         . '/image/upload/w_2560,f_auto,q_auto/'
+         . $public_id;
+}
+
 // CDN URL for the admin grid thumbnail (300×300, smart fill).
 function cloudinary_admin_thumb_url(string $public_id): string {
     return 'https://res.cloudinary.com/' . CLOUDINARY_CLOUD_NAME
