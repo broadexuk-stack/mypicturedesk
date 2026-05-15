@@ -136,10 +136,15 @@ if ($action === 'approve') {
         $cld_id = cloudinary_public_id($party['slug'], $uuid);
         $result = cloudinary_upload($gPath, $cld_id);
         if ($result !== false) {
-            db_set_photo_cloudinary_id($uuid, $party_id, $cld_id);
-            // Local gallery copies are no longer needed
-            @unlink($gPath);
-            @unlink($tPath);
+            // Use the public_id Cloudinary actually assigned (may include folder prefix)
+            $stored_id = $result['public_id'] ?? $cld_id;
+            try {
+                db_set_photo_cloudinary_id($uuid, $party_id, $stored_id);
+                @unlink($gPath);
+                @unlink($tPath);
+            } catch (\Throwable $e) {
+                error_log("moderate.php: db_set_photo_cloudinary_id failed for $uuid: " . $e->getMessage());
+            }
         } else {
             error_log("moderate.php: Cloudinary upload failed for $uuid — keeping local files");
         }
