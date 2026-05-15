@@ -107,6 +107,14 @@ function db_set_photo_status(string $uuid, int $party_id, string $status): void 
     $st->execute([':status' => $status, ':uuid' => $uuid, ':party_id' => $party_id]);
 }
 
+function db_count_pending(int $party_id): int {
+    $st = db_pdo()->prepare(
+        "SELECT COUNT(*) FROM photos WHERE party_id = :party_id AND status = 'pending'"
+    );
+    $st->execute([':party_id' => $party_id]);
+    return (int)$st->fetchColumn();
+}
+
 function db_count_photos_by_status(int $party_id): array {
     $sql = 'SELECT status, COUNT(*) AS cnt FROM photos
             WHERE party_id = :party_id GROUP BY status';

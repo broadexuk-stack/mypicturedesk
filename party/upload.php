@@ -148,8 +148,10 @@ db_insert_photo($party_id, $uuid, $detected_ext, $ip_hash, $ip_disp, $uploaded_b
 db_log_upload_attempt($party_id, $ip_hash);
 
 // ── Optional email notification ─────────────────────────────
+// Only notify when this photo is the first in an empty pending queue,
+// so the organiser gets one alert per batch rather than one per upload.
 $notify = $party['notify_email'] ?? '';
-if ($notify !== '') {
+if ($notify !== '' && db_count_pending($party_id) === 1) {
     $pname   = $party['party_name'];
     $subject = '[' . $pname . '] New photo awaiting approval';
     $body    = mpd_render_email('email_notify_body', [
