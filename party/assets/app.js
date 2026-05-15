@@ -514,7 +514,7 @@
   }
 
   function playPip()     { playTone(880,  880,  0.08, 0.25); }
-  function playShutter() { playTone(1200, 600,  0.18, 0.35); }
+  function playShutter() { playTone(1760, 1760, 0.24, 0.35); }
 
   // Flash — front camera only
   function triggerFlash() {
