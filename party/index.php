@@ -320,6 +320,5 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
   <script src="assets/app.js?v=<?= filemtime(__DIR__ . '/assets/app.js') ?>"></script>
 
 <?php endif; ?>
-<div id="flash-overlay" class="flash-overlay"></div>
 </body>
 </html>

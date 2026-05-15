@@ -42,7 +42,6 @@
   const viewfinderUI        = document.getElementById('viewfinder-ui');
   const viewfinderVideo     = document.getElementById('viewfinder-video');
   const timerOverlay        = document.getElementById('timer-overlay');
-  const flashOverlay        = document.getElementById('flash-overlay');
   const btnTimerCamera      = document.getElementById('btn-timer-camera');
   const btnTimerStart       = document.getElementById('btn-timer-start');
   const btnFlipCamera       = document.getElementById('btn-flip-camera');
@@ -516,14 +515,24 @@
   function playPip()     { playTone(880,  880,  0.08, 0.25); }
   function playShutter() { playTone(1760, 1760, 0.24, 0.35); }
 
-  // Flash — front camera only: white out now, fade after 1 s
+  // Flash — front camera only: dynamically created full-screen white overlay
   function triggerFlash() {
-    if (!flashOverlay) return;
-    flashOverlay.style.transition = 'none';
-    flashOverlay.style.opacity = '1';
+    if (facingMode !== 'user') return;
+    const el = document.createElement('div');
+    el.style.position   = 'fixed';
+    el.style.top        = '0';
+    el.style.left       = '0';
+    el.style.width      = '100%';
+    el.style.height     = '100%';
+    el.style.background = '#ffffff';
+    el.style.opacity    = '1';
+    el.style.zIndex     = '99999';
+    el.style.pointerEvents = 'none';
+    document.body.appendChild(el);
     setTimeout(() => {
-      flashOverlay.style.transition = 'opacity 0.3s ease-out';
-      flashOverlay.style.opacity = '0';
+      el.style.transition = 'opacity 0.3s ease-out';
+      el.style.opacity = '0';
+      setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 350);
     }, 1000);
   }
 
@@ -598,13 +607,9 @@
         playPip();
       } else {
         clearTimerTick();
-        if (facingMode === 'user') {
-          triggerFlash();                          // white out immediately
-          setTimeout(() => { playShutter(); captureFrame(); }, 500); // capture 500 ms later under white
-        } else {
-          playShutter();
-          captureFrame();
-        }
+        triggerFlash();
+        playShutter();
+        setTimeout(captureFrame, 80); // brief yield so white paints before canvas work
       }
     }, 1000);
   }
