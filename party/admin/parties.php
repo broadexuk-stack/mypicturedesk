@@ -277,6 +277,9 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     input:focus, select:focus, textarea:focus { outline: none; border-color: #f5a623; }
     .hint { font-size: 0.74rem; color: #6b5ca5; margin-top: 4px; }
     .hidden { display: none; }
+    .slug-id-row { display: flex; gap: 8px; align-items: center; }
+    .slug-id-box { flex: 1; font-family: monospace; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.18em; background: #160f35; border: 2px solid #9c7fff; border-radius: 8px; padding: 10px 14px; color: #9c7fff; text-align: center; }
+    .slug-hint-val { font-family: monospace; font-weight: 700; color: #9c7fff; }
   </style>
 </head>
 <body>
@@ -424,12 +427,12 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
       </div>
 
       <div class="form-row">
-        <label>Party Tag</label>
-        <div style="display:flex;gap:8px;align-items:stretch;">
-          <div id="slug-display" style="flex:1;font-family:monospace;font-size:1.2rem;font-weight:700;letter-spacing:0.18em;background:#160f35;border:2px solid #9c7fff;border-radius:8px;padding:10px 14px;color:#9c7fff;text-align:center;">——————</div>
+        <label>Party ID</label>
+        <div class="slug-id-row">
+          <div id="slug-display" class="slug-id-box">——————</div>
           <button type="button" id="btn-regen-slug" class="btn-sm btn-ghost" title="Generate a new Party ID">↻ New ID</button>
         </div>
-        <p class="hint">Auto-generated unique ID. Guest URL: <?= BASE_URL ?>/party?id=<span id="slug-hint-val" style="font-family:monospace;font-weight:700;color:#9c7fff;">……</span></p>
+        <p class="hint">Auto-generated unique ID. Guest URL: <?= BASE_URL ?>/party?id=<span id="slug-hint-val" class="slug-hint-val">……</span></p>
         <input type="hidden" name="slug" id="slug-hidden" value="<?= htmlspecialchars($generated_slug) ?>">
       </div>
 
