@@ -424,11 +424,11 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
       </div>
 
       <div class="form-row">
-        <label>Party ID</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <div id="slug-display" style="flex:1;font-family:monospace;font-size:1.1rem;font-weight:700;letter-spacing:0.14em;background:#160f35;border:2px solid #2d1b69;border-radius:8px;padding:10px 14px;color:#9c7fff;">——————</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+          <label style="margin-bottom:0;">Party ID</label>
           <button type="button" id="btn-regen-slug" class="btn-sm btn-ghost" title="Generate a new Party ID">↻ New ID</button>
         </div>
+        <div id="slug-display" style="font-family:monospace;font-size:1.2rem;font-weight:700;letter-spacing:0.18em;background:#160f35;border:2px solid #4b35a0;border-radius:8px;padding:10px 14px;color:#9c7fff;text-align:center;">——————</div>
         <p class="hint">Auto-generated unique ID. Guest URL: <?= BASE_URL ?>/party?id=<span id="slug-hint-val" style="font-family:monospace;font-weight:700;color:#9c7fff;">……</span></p>
         <input type="hidden" name="slug" id="slug-hidden" value="<?= htmlspecialchars($generated_slug) ?>">
       </div>
