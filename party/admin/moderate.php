@@ -69,7 +69,14 @@ if ($action === 'purge_all') {
             @unlink($dirs['gallery_thumbs'] . '/' . $p['uuid'] . '.' . $dskExt);
         }
         if (!empty($p['cloudinary_public_id'])) {
-            cloudinary_delete($p['cloudinary_public_id']);
+            $deleted = cloudinary_delete($p['cloudinary_public_id']);
+            mpd_log('cloudinary.delete', [
+                'event.outcome'        => $deleted ? 'success' : 'error',
+                'photo.uuid'           => $p['uuid'],
+                'party.id'             => $party_id,
+                'cloudinary.public_id' => $p['cloudinary_public_id'],
+                'trigger'              => 'purge_all',
+            ]);
         }
         db_set_photo_status($p['uuid'], $party_id, 'rejected');
     }
@@ -132,31 +139,54 @@ if ($action === 'approve') {
     }
 
     // ── Upload to Cloudinary if enabled for this party ────────
+    $cloudinary_stored_id = null;
     if (!empty($party['cloudinary_enabled']) && cloudinary_globally_configured()) {
         $cld_id = cloudinary_public_id($party['slug'], $uuid);
         $result = cloudinary_upload($gPath, $cld_id);
         if ($result !== false) {
-            // Use the public_id Cloudinary actually assigned (may include folder prefix)
-            $stored_id = $result['public_id'] ?? $cld_id;
+            $cloudinary_stored_id = $result['public_id'] ?? $cld_id;
             try {
-                db_set_photo_cloudinary_id($uuid, $party_id, $stored_id);
+                db_set_photo_cloudinary_id($uuid, $party_id, $cloudinary_stored_id);
                 @unlink($gPath);
                 @unlink($tPath);
+                mpd_log('cloudinary.upload', [
+                    'event.outcome'      => 'success',
+                    'photo.uuid'         => $uuid,
+                    'party.id'           => $party_id,
+                    'party.slug'         => $party['slug'],
+                    'cloudinary.public_id' => $cloudinary_stored_id,
+                    'file.bytes'         => $result['bytes'] ?? null,
+                    'file.format'        => $result['format'] ?? null,
+                ]);
             } catch (\Throwable $e) {
                 error_log("moderate.php: db_set_photo_cloudinary_id failed for $uuid: " . $e->getMessage());
+                mpd_log('cloudinary.upload', [
+                    'event.outcome' => 'db_error',
+                    'photo.uuid'    => $uuid,
+                    'party.id'      => $party_id,
+                    'error.message' => $e->getMessage(),
+                ]);
             }
         } else {
             error_log("moderate.php: Cloudinary upload failed for $uuid — keeping local files");
+            mpd_log('cloudinary.upload', [
+                'event.outcome' => 'error',
+                'photo.uuid'    => $uuid,
+                'party.id'      => $party_id,
+                'party.slug'    => $party['slug'],
+            ]);
         }
     }
 
     db_set_photo_status($uuid, $party_id, 'approved');
     mpd_log('photo.approved', [
-        'photo.uuid'  => $uuid,
-        'party.id'    => $party_id,
-        'party.slug'  => $party['slug'],
-        'user.id'     => (int)($_SESSION['mpd_user_id'] ?? 0),
-        'user.role'   => $role,
+        'photo.uuid'           => $uuid,
+        'party.id'             => $party_id,
+        'party.slug'           => $party['slug'],
+        'user.id'              => (int)($_SESSION['mpd_user_id'] ?? 0),
+        'user.role'            => $role,
+        'cloudinary.stored'    => $cloudinary_stored_id !== null,
+        'cloudinary.public_id' => $cloudinary_stored_id,
     ]);
     exit(json_encode(['ok' => true, 'action' => 'approved']));
 }
@@ -175,7 +205,15 @@ if ($action === 'reject') {
         if (file_exists($path)) @unlink($path);
     }
     if (!empty($photo['cloudinary_public_id'])) {
-        cloudinary_delete($photo['cloudinary_public_id']);
+        $deleted = cloudinary_delete($photo['cloudinary_public_id']);
+        mpd_log('cloudinary.delete', [
+            'event.outcome'        => $deleted ? 'success' : 'error',
+            'photo.uuid'           => $uuid,
+            'party.id'             => $party_id,
+            'party.slug'           => $party['slug'],
+            'cloudinary.public_id' => $photo['cloudinary_public_id'],
+            'trigger'              => 'reject',
+        ]);
     }
     db_set_photo_status($uuid, $party_id, 'rejected');
     mpd_log('photo.rejected', [
