@@ -54,6 +54,8 @@
   // Paused-state tracking
   let isPaused      = false;
   let currentState  = 'camera';
+  // Track whether the current preview came from the timer selfie camera
+  let lastWasTimerSelfie = false;
 
   const pausedModal    = document.getElementById('paused-modal');
   const pausedModalMsg = document.getElementById('paused-modal-msg');
@@ -198,6 +200,7 @@
     stopCameraStream();
     clearTimerTick();
     selectedFile = null;
+    lastWasTimerSelfie = false;
     cameraInput.value  = '';
     libraryInput.value = '';
     showState('camera');
@@ -225,10 +228,12 @@
   }
 
   cameraInput.addEventListener('change', () => {
+    lastWasTimerSelfie = false;
     onFileSelected(cameraInput.files[0] || null);
   });
 
   libraryInput.addEventListener('change', () => {
+    lastWasTimerSelfie = false;
     onFileSelected(libraryInput.files[0] || null);
   });
 
@@ -237,12 +242,15 @@
   // Note: we call .click() only inside a user-gesture handler,
   // which satisfies iOS Safari's requirement.
   btnRetake.addEventListener('click', () => {
-    cameraInput.value = '';
     selectedFile = null;
     previewImg.src = '';
-    showState('camera');
-    // Brief delay so the DOM settles before triggering
-    setTimeout(() => cameraInput.click(), 80);
+    if (lastWasTimerSelfie) {
+      startViewfinder();
+    } else {
+      cameraInput.value = '';
+      showState('camera');
+      setTimeout(() => cameraInput.click(), 80);
+    }
   });
 
   // Retry button on error screen
@@ -527,6 +535,7 @@
     }
     ctx.drawImage(viewfinderVideo, 0, 0);
     stopCameraStream();
+    lastWasTimerSelfie = true;
     canvas.toBlob(blob => {
       const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
       onFileSelected(file);
