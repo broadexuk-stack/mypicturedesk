@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/includes/db.php';
-require_once dirname(__DIR__) . '/includes/cloudinary.php';
 
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
@@ -86,9 +85,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'retention_days'       => $ret_days,
                 'timer_camera_enabled' => isset($_POST['timer_camera_enabled']) ? 1 : 0,
             ];
-            if (cloudinary_globally_configured()) {
-                $fields['cloudinary_enabled'] = isset($_POST['cloudinary_enabled']) ? 1 : 0;
-            }
             mpd_update_party($party_id, $fields);
             $party   = mpd_get_party_by_id($party_id); // reload
             $success = 'Settings saved.';
@@ -239,17 +235,6 @@ if (!empty($party['event_datetime'])) {
       </label>
       <p class="hint">Lower resolution than the native camera — ideal for quick group selfies.</p>
     </div>
-
-    <?php if (cloudinary_globally_configured()): ?>
-    <div class="form-row">
-      <label>Cloud Storage</label>
-      <label class="checkbox-row">
-        <input type="checkbox" name="cloudinary_enabled" value="1" <?= !empty($party['cloudinary_enabled']) ? 'checked' : '' ?>>
-        <span>☁️ Store approved photos on Cloudinary</span>
-      </label>
-      <p class="hint">Approved photos are uploaded to Cloudinary and served via their global CDN. Local copies are removed after upload. Pending and rejected photos are never sent to Cloudinary.</p>
-    </div>
-    <?php endif; ?>
 
     <button type="submit" class="btn-save">Save Settings</button>
   </form>

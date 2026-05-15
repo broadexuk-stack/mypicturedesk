@@ -372,16 +372,17 @@ function mpd_create_party(
     string  $party_name,
     int     $organizer_id,
     int     $created_by,
-    ?string $event_datetime  = null,
-    ?string $party_info      = null,
-    ?string $notify_email    = null,
-    int     $retention_days  = 30,
-    ?string $organiser_name  = null,
-    bool    $timer_camera    = false
+    ?string $event_datetime      = null,
+    ?string $party_info          = null,
+    ?string $notify_email        = null,
+    int     $retention_days      = 30,
+    ?string $organiser_name      = null,
+    bool    $timer_camera        = false,
+    bool    $cloudinary_enabled  = false
 ): int {
     $sql = 'INSERT INTO mpd_parties
-              (slug, party_name, organiser_name, organizer_id, created_by, event_datetime, party_info, notify_email, retention_days, timer_camera_enabled)
-            VALUES (:slug, :name, :oname, :oid, :cby, :edt, :info, :notify, :ret, :timer)';
+              (slug, party_name, organiser_name, organizer_id, created_by, event_datetime, party_info, notify_email, retention_days, timer_camera_enabled, cloudinary_enabled)
+            VALUES (:slug, :name, :oname, :oid, :cby, :edt, :info, :notify, :ret, :timer, :cloud)';
     $st = db_pdo()->prepare($sql);
     $st->execute([
         ':slug'   => $slug,
@@ -394,6 +395,7 @@ function mpd_create_party(
         ':notify' => $notify_email,
         ':ret'    => $retention_days,
         ':timer'  => (int)$timer_camera,
+        ':cloud'  => (int)$cloudinary_enabled,
     ]);
     return (int)db_pdo()->lastInsertId();
 }

@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/includes/db.php';
+require_once dirname(__DIR__) . '/includes/cloudinary.php';
 
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
@@ -105,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = 'Please select or create an organiser.';
                     $party_modal_open = true;
                 } else {
+                    $cloudinary_on = cloudinary_globally_configured() && !empty($_POST['cloudinary_enabled']);
                     mpd_create_party(
                         $slug, $name, $org_id, $me,
                         $edt    !== '' ? $edt    : null,
@@ -112,7 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $notify !== '' ? $notify : null,
                         $party_ret,
                         $oname  !== '' ? $oname  : null,
-                        $timer_camera
+                        $timer_camera,
+                        $cloudinary_on
                     );
                     mpd_ensure_party_dirs($slug);
 
@@ -160,6 +163,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pt = mpd_get_party_by_id($pid);
                 mpd_delete_party($pid);
                 $success = $pt ? "Party '{$pt['party_name']}' deleted." : 'Party deleted.';
+            }
+        }
+
+        // ─ Toggle Cloudinary ─
+        if ($action === 'toggle_cloudinary') {
+            $pid = (int)($_POST['party_id'] ?? 0);
+            if ($pid > 0 && cloudinary_globally_configured()) {
+                $enabled = (bool)(int)($_POST['cloudinary_enabled'] ?? 0);
+                mpd_update_party($pid, ['cloudinary_enabled' => $enabled ? 1 : 0]);
             }
         }
 
@@ -325,6 +337,7 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
           <th>Event Date</th>
           <th>Photos</th>
           <th>Status</th>
+          <?php if (cloudinary_globally_configured()): ?><th title="Cloudinary CDN storage">☁️</th><?php endif; ?>
           <th>Actions</th>
         </tr>
       </thead>
@@ -351,6 +364,19 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
               </span>
             <?php endif; ?>
           </td>
+          <?php if (cloudinary_globally_configured()): ?>
+          <td style="text-align:center;">
+            <form class="inline-form cloud-toggle-form" method="post">
+              <input type="hidden" name="csrf_token"        value="<?= htmlspecialchars($csrf) ?>">
+              <input type="hidden" name="action"            value="toggle_cloudinary">
+              <input type="hidden" name="party_id"          value="<?= (int)$pt['id'] ?>">
+              <input type="hidden" name="cloudinary_enabled" value="0">
+              <input type="checkbox" name="cloudinary_enabled" value="1"
+                     title="Store approved photos on Cloudinary"
+                     <?= !empty($pt['cloudinary_enabled']) ? 'checked' : '' ?>>
+            </form>
+          </td>
+          <?php endif; ?>
           <td>
             <div class="action-cell">
               <!-- Toggle active -->
@@ -488,6 +514,17 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
         <p class="hint">Lower resolution than the native camera — ideal for quick group selfies.</p>
       </div>
 
+      <?php if (cloudinary_globally_configured()): ?>
+      <div class="form-row">
+        <label>Cloud Storage</label>
+        <label class="checkbox-row">
+          <input type="checkbox" name="cloudinary_enabled" value="1" <?= !empty($_POST['cloudinary_enabled']) ? 'checked' : '' ?>>
+          <span>☁️ Store approved photos on Cloudinary CDN</span>
+        </label>
+        <p class="hint">Approved photos are uploaded to Cloudinary and served via their global CDN. Local copies are removed after upload.</p>
+      </div>
+      <?php endif; ?>
+
       <div class="form-row">
         <label>Party ID</label>
         <div class="slug-id-row">
@@ -558,6 +595,10 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
       row.classList.add('hidden');
       inp.required = false;
     }
+  });
+
+  document.querySelectorAll('.cloud-toggle-form input[type=checkbox]').forEach(function (cb) {
+    cb.addEventListener('change', function () { cb.closest('form').submit(); });
   });
 
   document.querySelectorAll('form[data-confirm]').forEach(function (form) {
