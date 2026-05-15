@@ -39,6 +39,13 @@
   const lightboxClose = document.getElementById('lightbox-close');
   const lightboxPrev  = document.getElementById('lightbox-prev');
   const lightboxNext  = document.getElementById('lightbox-next');
+  const viewfinderUI        = document.getElementById('viewfinder-ui');
+  const viewfinderVideo     = document.getElementById('viewfinder-video');
+  const timerOverlay        = document.getElementById('timer-overlay');
+  const btnTimerCamera      = document.getElementById('btn-timer-camera');
+  const btnTimerStart       = document.getElementById('btn-timer-start');
+  const btnFlipCamera       = document.getElementById('btn-flip-camera');
+  const btnViewfinderCancel = document.getElementById('btn-viewfinder-cancel');
 
   // Current selected File object
   let selectedFile = null;
@@ -135,12 +142,13 @@
   // ── State management ─────────────────────────────────────────
 
   function showState(state) {
-    // state: 'camera' | 'preview' | 'success' | 'error'
+    // state: 'camera' | 'preview' | 'success' | 'error' | 'viewfinder'
     currentState = state;
     uploadUI.hidden  = state !== 'camera';
     previewUI.hidden = state !== 'preview';
     successUI.hidden = state !== 'success';
     errorUI.hidden   = state !== 'error';
+    if (viewfinderUI) viewfinderUI.hidden = state !== 'viewfinder';
     progressWrap.hidden = true;
 
     // Keep upload button disabled behind the overlay when paused
@@ -150,6 +158,8 @@
   function showPaused(organiserName) {
     if (isPaused) return;
     isPaused = true;
+    stopCameraStream();
+    clearTimerTick();
 
     cameraInput.disabled  = true;
     libraryInput.disabled = true;
@@ -185,6 +195,8 @@
 
   function resetToCamera() {
     clearCountdown();
+    stopCameraStream();
+    clearTimerTick();
     selectedFile = null;
     cameraInput.value  = '';
     libraryInput.value = '';
@@ -464,6 +476,91 @@
     if (Math.abs(dx) < 40) return; // too short to count
     if (dx < 0) lbNext(); else lbPrev();
   }, { passive: true });
+
+  // ── Timer selfie camera ──────────────────────────────────────
+
+  let cameraStream = null;
+  let facingMode   = 'user'; // front camera default for selfies
+  let timerTick    = null;
+
+  function stopCameraStream() {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
+    }
+    if (viewfinderVideo) viewfinderVideo.srcObject = null;
+  }
+
+  function clearTimerTick() {
+    if (timerTick) { clearInterval(timerTick); timerTick = null; }
+    if (timerOverlay) timerOverlay.hidden = true;
+    if (btnTimerStart) btnTimerStart.disabled = false;
+    if (btnFlipCamera) btnFlipCamera.disabled = false;
+  }
+
+  async function startViewfinder() {
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false
+      });
+      viewfinderVideo.srcObject = cameraStream;
+      if (facingMode === 'user') {
+        viewfinderVideo.classList.remove('rear');
+      } else {
+        viewfinderVideo.classList.add('rear');
+      }
+      showState('viewfinder');
+    } catch (err) {
+      showError('Camera access was denied. Please allow camera permission and try again.');
+    }
+  }
+
+  function captureFrame() {
+    const canvas = document.createElement('canvas');
+    canvas.width  = viewfinderVideo.videoWidth;
+    canvas.height = viewfinderVideo.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (facingMode === 'user') {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(viewfinderVideo, 0, 0);
+    stopCameraStream();
+    canvas.toBlob(blob => {
+      const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
+      onFileSelected(file);
+    }, 'image/jpeg', 0.92);
+  }
+
+  function startTimer() {
+    if (timerTick) return;
+    btnTimerStart.disabled = true;
+    btnFlipCamera.disabled = true;
+    let secs = 3;
+    timerOverlay.textContent = secs;
+    timerOverlay.hidden = false;
+    timerTick = setInterval(() => {
+      secs--;
+      if (secs > 0) {
+        timerOverlay.textContent = secs;
+      } else {
+        clearTimerTick();
+        captureFrame();
+      }
+    }, 1000);
+  }
+
+  // Only show timer button if feature enabled and getUserMedia available
+  if (window.PARTY_CONFIG.timerCamera &&
+      navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    if (btnTimerCamera) btnTimerCamera.hidden = false;
+  }
+
+  if (btnTimerCamera)      btnTimerCamera.addEventListener('click', () => { facingMode = 'user'; startViewfinder(); });
+  if (btnTimerStart)       btnTimerStart.addEventListener('click', startTimer);
+  if (btnFlipCamera)       btnFlipCamera.addEventListener('click', async () => { clearTimerTick(); stopCameraStream(); facingMode = facingMode === 'user' ? 'environment' : 'user'; await startViewfinder(); });
+  if (btnViewfinderCancel) btnViewfinderCancel.addEventListener('click', () => { clearTimerTick(); stopCameraStream(); resetToCamera(); });
 
   // ── Init ──────────────────────────────────────────────────────
 

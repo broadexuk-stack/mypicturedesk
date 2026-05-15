@@ -27,6 +27,7 @@ $csrf = $_SESSION['csrf_token'];
 $nonce = base64_encode(random_bytes(16));
 header("Content-Security-Policy: default-src 'self'; "
      . "img-src 'self' data: blob:; "
+     . "media-src 'self' blob:; "
      . "script-src 'self' 'nonce-$nonce' https://fonts.googleapis.com; "
      . "style-src 'self' 'nonce-$nonce' https://fonts.googleapis.com; "
      . "font-src https://fonts.gstatic.com; "
@@ -156,6 +157,8 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
           or <label for="library-input" class="link-label" role="button" tabindex="0">choose an existing photo</label>
         </p>
 
+        <button id="btn-timer-camera" class="btn-timer-selfie" type="button" hidden>⏱ Timer Selfie</button>
+
         <p class="name-byline" id="name-byline" hidden>
           Uploading as <strong id="name-byline-text"></strong> &middot;
           <button type="button" id="btn-change-name" class="name-change-btn">change</button>
@@ -199,6 +202,19 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
         <div class="result-emoji" aria-hidden="true">😬</div>
         <p class="result-text" id="error-msg">Something went wrong.</p>
         <button class="btn btn-confirm" id="btn-retry" type="button">🔄 Try Again</button>
+      </div>
+
+      <!-- ── Timer selfie viewfinder ── -->
+      <div id="viewfinder-ui" hidden>
+        <div class="viewfinder-wrap">
+          <video id="viewfinder-video" autoplay playsinline muted></video>
+          <div id="timer-overlay" class="timer-overlay" hidden></div>
+        </div>
+        <div class="viewfinder-actions">
+          <button id="btn-timer-start" class="btn btn-confirm" type="button">⏱ Start (3s)</button>
+          <button id="btn-flip-camera" class="btn btn-retake" type="button">🔄 Flip</button>
+          <button id="btn-viewfinder-cancel" class="btn btn-retake" type="button">✕ Cancel</button>
+        </div>
       </div>
 
     </section>
@@ -297,7 +313,8 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
       organiserName: <?= json_encode($organiser_raw) ?>,
       uploadUrl:    'upload.php',
       galleryUrl:   'gallery.php?json=1&id=' + <?= json_encode($slug) ?>,
-      refreshMs:    30000
+      refreshMs:    30000,
+      timerCamera:  <?= json_encode((bool)($party['timer_camera_enabled'] ?? false)) ?>
     };
   </script>
   <script src="assets/app.js?v=<?= filemtime(__DIR__ . '/assets/app.js') ?>"></script>

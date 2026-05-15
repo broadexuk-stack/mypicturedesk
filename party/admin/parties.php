@@ -70,6 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $notify      = trim($_POST['notify_email'] ?? '');
             $ret_raw     = (int)($_POST['retention_days'] ?? $ret_default);
             $party_ret   = max(1, min($ret_max, $ret_raw));
+            $timer_camera = !empty($_POST['timer_camera_enabled']);
             $me          = (int)$_SESSION['mpd_user_id'];
             $org_id      = 0;
 
@@ -110,7 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $info   !== '' ? $info   : null,
                         $notify !== '' ? $notify : null,
                         $party_ret,
-                        $oname  !== '' ? $oname  : null
+                        $oname  !== '' ? $oname  : null,
+                        $timer_camera
                     );
                     mpd_ensure_party_dirs($slug);
 
@@ -277,6 +279,9 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     input:focus, select:focus, textarea:focus { outline: none; border-color: #f5a623; }
     .hint { font-size: 0.74rem; color: #6b5ca5; margin-top: 4px; }
     .hidden { display: none; }
+    .checkbox-row { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#160f35; border:2px solid #4b35a0; border-radius:8px; cursor:pointer; }
+    .checkbox-row input[type=checkbox] { width:16px; height:16px; accent-color:#f5a623; cursor:pointer; flex-shrink:0; }
+    .checkbox-row span { font-size:0.85rem; font-weight:700; color:#c9b8ff; }
     .slug-id-row { display: flex; gap: 8px; align-items: center; }
     .slug-id-box { flex: 1; font-family: inherit; font-size: 0.9rem; background: #160f35; border: 2px solid #4b35a0; border-radius: 8px; padding: 10px 14px; color: #f0ebff; }
     .slug-hint-val { font-weight: 700; color: #9c7fff; }
@@ -472,6 +477,15 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
         <input type="number" id="retention_days" name="retention_days" min="1" max="<?= $ret_max ?>"
                value="<?= (int)($_POST['retention_days'] ?? $ret_default) ?>">
         <p class="hint">Photos will be flagged for removal after this many days. Platform maximum: <?= $ret_max ?> days.</p>
+      </div>
+
+      <div class="form-row">
+        <label>Timer Selfie Camera</label>
+        <label class="checkbox-row">
+          <input type="checkbox" name="timer_camera_enabled" value="1" <?= !empty($_POST['timer_camera_enabled']) ? 'checked' : '' ?>>
+          <span>⏱ Enable in-browser countdown selfie on the guest page</span>
+        </label>
+        <p class="hint">Lower resolution than the native camera — ideal for quick group selfies.</p>
       </div>
 
       <div class="form-row">

@@ -77,12 +77,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Notification email is not a valid address.';
         } else {
             mpd_update_party($party_id, [
-                'party_name'     => $name,
-                'organiser_name' => $oname !== '' ? $oname : null,
-                'event_datetime' => $edt !== '' ? $edt : null,
-                'party_info'     => $info !== '' ? $info : null,
-                'notify_email'   => $notify !== '' ? $notify : null,
-                'retention_days' => $ret_days,
+                'party_name'           => $name,
+                'organiser_name'       => $oname !== '' ? $oname : null,
+                'event_datetime'       => $edt !== '' ? $edt : null,
+                'party_info'           => $info !== '' ? $info : null,
+                'notify_email'         => $notify !== '' ? $notify : null,
+                'retention_days'       => $ret_days,
+                'timer_camera_enabled' => isset($_POST['timer_camera_enabled']) ? 1 : 0,
             ]);
             $party   = mpd_get_party_by_id($party_id); // reload
             $success = 'Settings saved.';
@@ -132,6 +133,9 @@ if (!empty($party['event_datetime'])) {
     .btn-save:hover { background: #e6941a; }
     .coming-soon { font-size: 0.78rem; color: #4a3580; background: #2d1b69; border-radius: 8px; padding: 8px 14px; margin-top: 6px; }
     .party-switch-sel { font-family: inherit; font-size: 0.82rem; padding: 5px 10px; border-radius: 8px; border: 1px solid #4b35a0; background: #2d1b69; color: #c9b8ff; cursor: pointer; max-width: 200px; }
+    .checkbox-row { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#160f35; border:2px solid #4b35a0; border-radius:8px; cursor:pointer; }
+    .checkbox-row input[type=checkbox] { width:16px; height:16px; accent-color:#f5a623; cursor:pointer; flex-shrink:0; }
+    .checkbox-row span { font-size:0.85rem; font-weight:700; color:#c9b8ff; }
   </style>
 </head>
 <body>
@@ -220,6 +224,15 @@ if (!empty($party['event_datetime'])) {
     <div class="form-row">
       <label>Colour Theme</label>
       <div class="coming-soon">🎨 Colour picker coming in a future update</div>
+    </div>
+
+    <div class="form-row">
+      <label>Timer Selfie Camera</label>
+      <label class="checkbox-row">
+        <input type="checkbox" name="timer_camera_enabled" value="1" <?= !empty($party['timer_camera_enabled']) ? 'checked' : '' ?>>
+        <span>⏱ Enable in-browser countdown selfie on the guest page</span>
+      </label>
+      <p class="hint">Lower resolution than the native camera — ideal for quick group selfies.</p>
     </div>
 
     <button type="submit" class="btn-save">Save Settings</button>
