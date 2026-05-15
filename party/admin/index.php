@@ -19,7 +19,7 @@ if (empty($_SESSION['admin_csrf'])) {
 // ── Security headers ────────────────────────────────────────
 $nonce = base64_encode(random_bytes(16));
 header("Content-Security-Policy: default-src 'self'; "
-     . "img-src 'self' data: blob:; "
+     . "img-src 'self' data: blob: https://res.cloudinary.com; "
      . "script-src 'self' 'nonce-$nonce'; "
      . "style-src 'self' 'nonce-$nonce' https://fonts.googleapis.com; "
      . "font-src https://fonts.gstatic.com; "

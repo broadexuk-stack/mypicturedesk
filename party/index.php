@@ -36,7 +36,7 @@ mpd_log('page.view', [
 // ── Security headers ─────────────────────────────────────────
 $nonce = base64_encode(random_bytes(16));
 header("Content-Security-Policy: default-src 'self'; "
-     . "img-src 'self' data: blob:; "
+     . "img-src 'self' data: blob: https://res.cloudinary.com; "
      . "media-src 'self' blob:; "
      . "script-src 'self' 'nonce-$nonce' https://fonts.googleapis.com; "
      . "style-src 'self' 'nonce-$nonce' https://fonts.googleapis.com; "
