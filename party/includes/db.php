@@ -183,6 +183,38 @@ function db_log_upload_attempt(int $party_id, string $ip_hash): void {
     $st->execute([':party_id' => $party_id, ':ip_hash' => $ip_hash]);
 }
 
+// ── D2. Login brute-force protection ─────────────────────────
+// Tracks failed admin login attempts per hashed email.
+// Requires: CREATE TABLE mpd_login_attempts (
+//   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+//   email_hash VARCHAR(64) NOT NULL,
+//   attempted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+//   INDEX idx_email_time (email_hash, attempted_at)
+// );
+
+function db_is_login_locked(string $email_hash): bool {
+    $st = db_pdo()->prepare(
+        'SELECT COUNT(*) FROM mpd_login_attempts
+         WHERE email_hash = :h AND attempted_at > NOW() - INTERVAL 15 MINUTE'
+    );
+    $st->execute([':h' => $email_hash]);
+    return (int)$st->fetchColumn() >= 10;
+}
+
+function db_record_login_failure(string $email_hash): void {
+    $st = db_pdo()->prepare(
+        'INSERT INTO mpd_login_attempts (email_hash) VALUES (:h)'
+    );
+    $st->execute([':h' => $email_hash]);
+}
+
+function db_clear_login_failures(string $email_hash): void {
+    $st = db_pdo()->prepare(
+        'DELETE FROM mpd_login_attempts WHERE email_hash = :h'
+    );
+    $st->execute([':h' => $email_hash]);
+}
+
 // ── E. mpd_users management ──────────────────────────────────
 
 function mpd_get_user_by_email(string $email): array|false {

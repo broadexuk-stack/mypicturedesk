@@ -59,33 +59,41 @@ if (!$logged_in && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'
     if (!hash_equals($_SESSION['admin_csrf'], $submitted_csrf)) {
         $error_msg = 'Invalid request. Please try again.';
     } else {
-        $email = trim($_POST['email'] ?? '');
-        $pw    = $_POST['password'] ?? '';
-        $user  = mpd_get_user_by_email($email);
+        $email      = trim($_POST['email'] ?? '');
+        $pw         = $_POST['password'] ?? '';
+        $email_hash = hash('sha256', strtolower($email));
 
-        if ($user && $user['is_active'] && $user['password_hash'] &&
-            password_verify($pw, $user['password_hash'])) {
-
-            session_regenerate_id(true);
-            $_SESSION['mpd_user_id']      = (int)$user['id'];
-            $_SESSION['mpd_role']         = $user['role'];
-            $_SESSION['admin_last_active']= time();
-            $_SESSION['admin_csrf']       = bin2hex(random_bytes(32));
-            mpd_update_last_login((int)$user['id']);
-
-            // Organizer: resolve their party
-            if ($user['role'] === 'organizer') {
-                $parties = mpd_get_parties_for_organizer((int)$user['id']);
-                if (!empty($parties)) {
-                    $_SESSION['mpd_party_id']   = (int)$parties[0]['id'];
-                    $_SESSION['mpd_party_slug'] = $parties[0]['slug'];
-                }
-            }
-            header('Location: index.php');
-            exit;
+        if (db_is_login_locked($email_hash)) {
+            $error_msg = 'Too many failed attempts. Please wait 15 minutes and try again.';
         } else {
-            $error_msg = 'Login failed. Please check your email and password.';
-            usleep(500_000);
+            $user = mpd_get_user_by_email($email);
+
+            if ($user && $user['is_active'] && $user['password_hash'] &&
+                password_verify($pw, $user['password_hash'])) {
+
+                db_clear_login_failures($email_hash);
+                session_regenerate_id(true);
+                $_SESSION['mpd_user_id']      = (int)$user['id'];
+                $_SESSION['mpd_role']         = $user['role'];
+                $_SESSION['admin_last_active']= time();
+                $_SESSION['admin_csrf']       = bin2hex(random_bytes(32));
+                mpd_update_last_login((int)$user['id']);
+
+                // Organizer: resolve their party
+                if ($user['role'] === 'organizer') {
+                    $parties = mpd_get_parties_for_organizer((int)$user['id']);
+                    if (!empty($parties)) {
+                        $_SESSION['mpd_party_id']   = (int)$parties[0]['id'];
+                        $_SESSION['mpd_party_slug'] = $parties[0]['slug'];
+                    }
+                }
+                header('Location: index.php');
+                exit;
+            } else {
+                db_record_login_failure($email_hash);
+                $error_msg = 'Login failed. Please check your email and password.';
+                usleep(500_000);
+            }
         }
     }
 }

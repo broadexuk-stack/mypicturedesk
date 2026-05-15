@@ -50,7 +50,7 @@ if ($full) {
     foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
         $candidate = $dirs['quarantine'] . '/' . $uuid . '.' . $ext;
         $real      = realpath($candidate);
-        if ($real && $base && str_starts_with($real, $base) && is_file($real)) {
+        if ($real && $base && str_starts_with($real, $base . DIRECTORY_SEPARATOR) && is_file($real)) {
             $mime = match ($ext) {
                 'png'  => 'image/png',
                 'webp' => 'image/webp',
@@ -71,7 +71,7 @@ if ($full) {
 foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
     $candidate = $dirs['quarantine_thumbs'] . '/' . $uuid . '.' . $ext;
     $real      = realpath($candidate);
-    if ($real && $base && str_starts_with($real, $base) && is_file($real)) {
+    if ($real && $base && str_starts_with($real, $base . DIRECTORY_SEPARATOR) && is_file($real)) {
         $mime = match ($ext) {
             'png'  => 'image/png',
             'webp' => 'image/webp',
