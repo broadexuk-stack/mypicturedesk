@@ -729,6 +729,4 @@ a:hover { color: var(--clr-gold-dark); }
 .timer-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.45); font-size:6rem; font-weight:900; color:#fff; font-family:'Nunito',sans-serif; pointer-events:none; }
 .viewfinder-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:16px; max-width:400px; margin-left:auto; margin-right:auto; }
 .viewfinder-actions .btn { flex:1; min-width:90px; }
-@keyframes camera-flash { 0% { opacity:1; } 100% { opacity:0; } }
 .flash-overlay { position:fixed; inset:0; z-index:9999; background:#fff; opacity:0; pointer-events:none; }
-.flash-overlay.flash-active { animation:camera-flash 0.45s ease-out forwards; }
