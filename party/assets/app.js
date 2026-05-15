@@ -530,10 +530,10 @@
     el.style.pointerEvents = 'none';
     document.body.appendChild(el);
     setTimeout(() => {
-      el.style.transition = 'opacity 0.3s ease-out';
+      el.style.transition = 'opacity 0.15s ease-out';
       el.style.opacity = '0';
-      setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 350);
-    }, 1000);
+      setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 200);
+    }, 500);
   }
 
   let cameraStream = null;
