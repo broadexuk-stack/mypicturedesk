@@ -519,15 +519,13 @@
   // Flash — front camera only
   function triggerFlash() {
     if (!flashOverlay || facingMode !== 'user') return;
-    // Cut to white immediately, then fade out once the browser has painted it
     flashOverlay.style.transition = 'none';
     flashOverlay.style.opacity = '1';
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        flashOverlay.style.transition = 'opacity 0.45s ease-out';
-        flashOverlay.style.opacity = '0';
-      });
-    });
+    // Hold white for 60 ms so the browser paints it, then fade out
+    setTimeout(() => {
+      flashOverlay.style.transition = 'opacity 0.5s ease-out';
+      flashOverlay.style.opacity = '0';
+    }, 60);
   }
 
   let cameraStream = null;
@@ -603,7 +601,7 @@
         clearTimerTick();
         playShutter();
         triggerFlash();
-        captureFrame();
+        setTimeout(captureFrame, 30); // yield so browser paints white before canvas work
       }
     }, 1000);
   }
