@@ -23,6 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_error(405, 'Method not allowed.');
 }
 
+// ── Detect post_max_size exceeded ───────────────────────────
+// When a POST body exceeds post_max_size, PHP silently empties
+// $_POST and $_FILES, which would otherwise cause a confusing
+// CSRF failure. Catch it here and return a clear size error.
+if (empty($_POST) && empty($_FILES) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+    json_error(413, sprintf('Photo is too large. Maximum size is %d MB.', MAX_FILE_SIZE_MB));
+}
+
 // ── Session & CSRF ──────────────────────────────────────────
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
