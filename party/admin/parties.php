@@ -278,8 +278,8 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     .hint { font-size: 0.74rem; color: #6b5ca5; margin-top: 4px; }
     .hidden { display: none; }
     .slug-id-row { display: flex; gap: 8px; align-items: center; }
-    .slug-id-box { flex: 1; font-family: monospace; font-size: 1.2rem; font-weight: 700; letter-spacing: 0.18em; background: #160f35; border: 2px solid #9c7fff; border-radius: 8px; padding: 10px 14px; color: #9c7fff; text-align: center; }
-    .slug-hint-val { font-family: monospace; font-weight: 700; color: #9c7fff; }
+    .slug-id-box { flex: 1; font-family: inherit; font-size: 0.9rem; background: #160f35; border: 2px solid #4b35a0; border-radius: 8px; padding: 10px 14px; color: #f0ebff; }
+    .slug-hint-val { font-weight: 700; color: #9c7fff; }
   </style>
 </head>
 <body>
@@ -427,16 +427,6 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
       </div>
 
       <div class="form-row">
-        <label>Party ID</label>
-        <div class="slug-id-row">
-          <div id="slug-display" class="slug-id-box">——————</div>
-          <button type="button" id="btn-regen-slug" class="btn-sm btn-ghost" title="Generate a new Party ID">↻ New ID</button>
-        </div>
-        <p class="hint">Auto-generated unique ID. Guest URL: <?= BASE_URL ?>/party?id=<span id="slug-hint-val" class="slug-hint-val">……</span></p>
-        <input type="hidden" name="slug" id="slug-hidden" value="<?= htmlspecialchars($generated_slug) ?>">
-      </div>
-
-      <div class="form-row">
         <label for="organiser_id">Organiser *</label>
         <select id="organiser_id" name="organiser_id" required>
           <option value="">— Select organiser —</option>
@@ -482,6 +472,16 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
         <input type="number" id="retention_days" name="retention_days" min="1" max="<?= $ret_max ?>"
                value="<?= (int)($_POST['retention_days'] ?? $ret_default) ?>">
         <p class="hint">Photos will be flagged for removal after this many days. Platform maximum: <?= $ret_max ?> days.</p>
+      </div>
+
+      <div class="form-row">
+        <label>Party ID</label>
+        <div class="slug-id-row">
+          <div id="slug-display" class="slug-id-box">——————</div>
+          <button type="button" id="btn-regen-slug" class="btn-sm btn-ghost" title="Generate a new Party ID">↻ New ID</button>
+        </div>
+        <p class="hint">Auto-generated unique ID. Guest URL: <?= BASE_URL ?>/party?id=<span id="slug-hint-val" class="slug-hint-val">……</span></p>
+        <input type="hidden" name="slug" id="slug-hidden" value="<?= htmlspecialchars($generated_slug) ?>">
       </div>
 
       <button type="submit" class="btn btn-primary">Create Party</button>
