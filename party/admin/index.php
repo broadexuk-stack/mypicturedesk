@@ -973,7 +973,7 @@ if ($sa_pages > 1):
       return 'thumb.php?uuid=' + encodeURIComponent(p.uuid) + '&party=' + encodeURIComponent(PARTY_SLUG);
     }
     if (p.cloudinary_public_id && CLOUD_NAME) {
-      return cldUrl(p.cloudinary_public_id, 'w_300,h_300,c_fill,g_auto:faces,f_auto,q_auto');
+      return cldUrl(p.cloudinary_public_id, 'w_300,h_300,c_fill,f_auto,q_auto');
     }
     return '../image.php?party=' + encodeURIComponent(PARTY_SLUG)
          + '&dir=gallery_thumbs&uuid=' + encodeURIComponent(p.uuid) + '&ext=' + encodeURIComponent(ext);
