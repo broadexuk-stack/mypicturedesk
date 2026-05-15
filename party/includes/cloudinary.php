@@ -109,10 +109,10 @@ function cloudinary_public_id(string $slug, string $uuid): string {
     return 'mypicturedesk/' . $slug . '/' . $uuid;
 }
 
-// CDN URL for the guest gallery thumbnail (600×600, face-aware fill).
+// CDN URL for the guest gallery thumbnail (600×600, smart fill).
 function cloudinary_thumb_url(string $public_id): string {
     return 'https://res.cloudinary.com/' . CLOUDINARY_CLOUD_NAME
-         . '/image/upload/w_600,h_600,c_fill,g_auto:faces,f_auto,q_auto/'
+         . '/image/upload/w_600,h_600,c_fill,f_auto,q_auto/'
          . $public_id;
 }
 
@@ -123,9 +123,9 @@ function cloudinary_full_url(string $public_id): string {
          . $public_id;
 }
 
-// CDN URL for the admin grid thumbnail (300×300, face-aware fill).
+// CDN URL for the admin grid thumbnail (300×300, smart fill).
 function cloudinary_admin_thumb_url(string $public_id): string {
     return 'https://res.cloudinary.com/' . CLOUDINARY_CLOUD_NAME
-         . '/image/upload/w_300,h_300,c_fill,g_auto:faces,f_auto,q_auto/'
+         . '/image/upload/w_300,h_300,c_fill,f_auto,q_auto/'
          . $public_id;
 }
