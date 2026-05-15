@@ -296,6 +296,7 @@ $page_title = $role === 'superadmin' ? 'Super Admin — MyPictureDesk'
     .empty-msg { color: #4a3580; font-size: 0.95rem; padding: 16px 0; }
     .card-name { display: block; color: #f5a623; font-weight: 700; margin-bottom: 2px; }
     .card-party-badge { display: inline-block; background: #160f35; color: #9c7fff; font-size: 0.68rem; font-weight: 700; border-radius: 6px; padding: 1px 6px; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.04em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .card-storage-badge { display: inline-block; background: #0f2640; color: #5bc4f5; font-size: 0.68rem; font-weight: 700; border-radius: 6px; padding: 1px 6px; margin-top: 3px; }
 
     .approved-heading-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
     .approved-heading-bar .section-heading,
@@ -470,6 +471,9 @@ if ($sa_pages > 1):
           <?php endif; ?>
           <time><?= htmlspecialchars(date('d M Y H:i', strtotime($p['upload_timestamp']))) ?></time>
           <?= htmlspecialchars(ucfirst($p['status'])) ?>
+          <?php if (!empty($p['cloudinary_public_id'])): ?>
+            <span class="card-storage-badge">☁️ Cloudinary</span>
+          <?php endif; ?>
         </div>
       </div>
       <?php endforeach; ?>
@@ -857,13 +861,15 @@ if ($sa_pages > 1):
       div.dataset.name         = p.uploaded_by || '';
       div.dataset.sectionLabel = (p.status || '').charAt(0).toUpperCase() + (p.status || '').slice(1);
       div.dataset.filetype     = ext.toUpperCase();
-      const nameLine = p.uploaded_by ? `<span class="card-name">👤 ${escHtml(p.uploaded_by)}</span>` : '';
+      const nameLine    = p.uploaded_by ? `<span class="card-name">👤 ${escHtml(p.uploaded_by)}</span>` : '';
+      const storageLine = p.cloudinary_public_id ? `<span class="card-storage-badge">☁️ Cloudinary</span>` : '';
       div.innerHTML = `<img src="${escHtml(thumbSrc)}" alt="Photo" loading="lazy" onerror="this.style.display='none'">`
         + `<div class="card-meta">`
         + `<span class="card-party-badge">${escHtml(p.party_name || slug)}</span>`
         + nameLine
         + `<time>${escHtml(fmtDate(p.upload_timestamp))}</time>`
         + escHtml(div.dataset.sectionLabel)
+        + storageLine
         + `</div>`;
       return div;
     }
