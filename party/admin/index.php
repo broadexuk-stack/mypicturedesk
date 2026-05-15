@@ -840,6 +840,9 @@ if ($sa_pages > 1):
       if (p.status === 'pending' || (p.status === 'removed' && !p.approved_at)) {
         thumbSrc = 'thumb.php?uuid=' + encodeURIComponent(p.uuid) + '&party=' + encodeURIComponent(slug);
         fullSrc  = thumbSrc + '&full=1';
+      } else if (p.cloudinary_public_id && CLOUD_NAME) {
+        thumbSrc = cldUrl(p.cloudinary_public_id, 'w_300,h_300,c_fill,f_auto,q_auto');
+        fullSrc  = cldUrl(p.cloudinary_public_id, 'f_auto,q_auto');
       } else {
         thumbSrc = '../image.php?party=' + encodeURIComponent(slug)
                  + '&dir=gallery_thumbs&uuid=' + encodeURIComponent(p.uuid)
