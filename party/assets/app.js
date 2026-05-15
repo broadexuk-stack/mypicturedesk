@@ -42,6 +42,7 @@
   const viewfinderUI        = document.getElementById('viewfinder-ui');
   const viewfinderVideo     = document.getElementById('viewfinder-video');
   const timerOverlay        = document.getElementById('timer-overlay');
+  const flashOverlay        = document.getElementById('flash-overlay');
   const btnTimerCamera      = document.getElementById('btn-timer-camera');
   const btnTimerStart       = document.getElementById('btn-timer-start');
   const btnFlipCamera       = document.getElementById('btn-flip-camera');
@@ -487,6 +488,42 @@
 
   // ── Timer selfie camera ──────────────────────────────────────
 
+  // Audio (Web Audio API — lazy init inside user gesture)
+  let audioCtx = null;
+
+  function ensureAudio() {
+    if (audioCtx) { if (audioCtx.state === 'suspended') audioCtx.resume(); return; }
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+  }
+
+  function playTone(freqStart, freqEnd, duration, gainVal) {
+    if (!audioCtx) return;
+    try {
+      const osc  = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freqStart, audioCtx.currentTime);
+      if (freqEnd !== freqStart) osc.frequency.exponentialRampToValueAtTime(freqEnd, audioCtx.currentTime + duration);
+      gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + duration + 0.01);
+    } catch (e) {}
+  }
+
+  function playPip()     { playTone(880,  880,  0.08, 0.25); }
+  function playShutter() { playTone(1200, 600,  0.18, 0.35); }
+
+  // Flash — front camera only
+  function triggerFlash() {
+    if (!flashOverlay || facingMode !== 'user') return;
+    flashOverlay.classList.remove('flash-active');
+    void flashOverlay.offsetWidth; // force reflow to restart animation
+    flashOverlay.classList.add('flash-active');
+  }
+
   let cameraStream = null;
   let facingMode   = 'user'; // front camera default for selfies
   let timerTick    = null;
@@ -544,17 +581,22 @@
 
   function startTimer() {
     if (timerTick) return;
+    ensureAudio();
     btnTimerStart.disabled = true;
     btnFlipCamera.disabled = true;
     let secs = 3;
     timerOverlay.textContent = secs;
     timerOverlay.hidden = false;
+    playPip();
     timerTick = setInterval(() => {
       secs--;
       if (secs > 0) {
         timerOverlay.textContent = secs;
+        playPip();
       } else {
         clearTimerTick();
+        playShutter();
+        triggerFlash();
         captureFrame();
       }
     }, 1000);

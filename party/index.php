@@ -209,6 +209,7 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
         <div class="viewfinder-wrap">
           <video id="viewfinder-video" autoplay playsinline muted></video>
           <div id="timer-overlay" class="timer-overlay" hidden></div>
+          <div id="flash-overlay" class="flash-overlay"></div>
         </div>
         <div class="viewfinder-actions">
           <button id="btn-timer-start" class="btn btn-confirm" type="button">⏱ Start (3s)</button>
