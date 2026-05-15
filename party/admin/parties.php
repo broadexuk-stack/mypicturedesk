@@ -370,6 +370,7 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
                 <input type="hidden" name="action" value="start">
                 <input type="hidden" name="organiser_id" value="<?= (int)$pt['organizer_id'] ?>">
+                <input type="hidden" name="party_id" value="<?= (int)$pt['id'] ?>">
                 <button type="submit" class="btn-sm btn-ghost" title="Log in as this party's organiser">👁 View as</button>
               </form>
 
