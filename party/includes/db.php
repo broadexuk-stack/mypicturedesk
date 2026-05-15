@@ -284,6 +284,18 @@ function mpd_get_party_by_slug(string $slug): array|false {
     return $st->fetch();
 }
 
+function mpd_generate_unique_slug(int $len = 6): string {
+    $chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    $max   = strlen($chars) - 1;
+    do {
+        $slug = '';
+        for ($i = 0; $i < $len; $i++) {
+            $slug .= $chars[random_int(0, $max)];
+        }
+    } while (mpd_get_party_by_slug($slug) !== false);
+    return $slug;
+}
+
 function mpd_get_party_by_id(int $id): array|false {
     $st = db_pdo()->prepare('SELECT * FROM mpd_parties WHERE id = :id LIMIT 1');
     $st->execute([':id' => $id]);

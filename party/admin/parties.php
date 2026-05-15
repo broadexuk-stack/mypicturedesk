@@ -40,6 +40,7 @@ header('X-Frame-Options: DENY');
 $success          = '';
 $error            = '';
 $party_modal_open = false;
+$generated_slug   = '';
 
 $s_plat      = mpd_get_all_settings();
 $ret_max     = max(1, (int)($s_plat['retention_max_days']     ?? 365));
@@ -55,7 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // ─ Create party ─
         if ($action === 'create_party') {
-            $slug        = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_POST['slug'] ?? '')));
+            // Accept client-generated slug if valid; silently regenerate otherwise
+            $slug_raw    = preg_replace('/[^a-z0-9]/', '', strtolower(trim($_POST['slug'] ?? '')));
+            $slug        = (strlen($slug_raw) === 6 && mpd_get_party_by_slug($slug_raw) === false)
+                           ? $slug_raw
+                           : mpd_generate_unique_slug();
             $name        = trim($_POST['party_name'] ?? '');
             $oname       = mb_substr(trim($_POST['organiser_name'] ?? ''), 0, 200);
             $org_id_raw  = trim($_POST['organiser_id'] ?? '');
@@ -92,17 +97,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($error === '') {
-                if ($slug === '' || strlen($slug) < 3) {
-                    $error = 'Party URL slug must be at least 3 characters (lowercase letters, numbers, hyphens only).';
-                    $party_modal_open = true;
-                } elseif ($name === '') {
+                if ($name === '') {
                     $error = 'Party name is required.';
                     $party_modal_open = true;
                 } elseif ($org_id === 0) {
                     $error = 'Please select or create an organiser.';
-                    $party_modal_open = true;
-                } elseif (mpd_get_party_by_slug($slug) !== false) {
-                    $error = "The slug '$slug' is already taken. Please choose another.";
                     $party_modal_open = true;
                 } else {
                     mpd_create_party(
@@ -134,8 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ]);
                         mpd_send_email($org['email'], "Your party gallery is ready: $name", $body);
                     }
-                    $success = "Party '$name' created with slug '$slug'.";
+                    $success = "Party '$name' created (ID: $slug).";
                 }
+            }
+            if ($party_modal_open) {
+                $generated_slug = $slug;
             }
         }
 
@@ -422,11 +424,13 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
       </div>
 
       <div class="form-row">
-        <label for="slug">URL Slug *</label>
-        <input type="text" id="slug" name="slug" required maxlength="60" pattern="[a-z0-9\-]+"
-               value="<?= htmlspecialchars($_POST['slug'] ?? '') ?>"
-               placeholder="e.g. smith-wedding-2026">
-        <p class="hint">Lowercase letters, numbers, hyphens only. Guest URL: <?= BASE_URL ?>/party?id=<em>your-slug</em></p>
+        <label>Party ID</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div id="slug-display" style="flex:1;font-family:monospace;font-size:1.1rem;font-weight:700;letter-spacing:0.14em;background:#160f35;border:2px solid #2d1b69;border-radius:8px;padding:10px 14px;color:#9c7fff;">——————</div>
+          <button type="button" id="btn-regen-slug" class="btn-sm btn-ghost" title="Generate a new Party ID">↻ New ID</button>
+        </div>
+        <p class="hint">Auto-generated unique ID. Guest URL: <?= BASE_URL ?>/party?id=<span id="slug-hint-val" style="font-family:monospace;font-weight:700;color:#9c7fff;">……</span></p>
+        <input type="hidden" name="slug" id="slug-hidden" value="<?= htmlspecialchars($generated_slug) ?>">
       </div>
 
       <div class="form-row">
@@ -486,7 +490,27 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
 (function () {
   var overlay  = document.getElementById('modal-overlay');
 
+  // ── Party ID generation ───────────────────────────────────────
+  var SERVER_SLUG = <?= json_encode($generated_slug) ?>;
+
+  function generatePartyId() {
+    var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    var arr   = new Uint8Array(6);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(function(b) { return chars[b % chars.length]; }).join('');
+  }
+
+  function applyPartyId(id) {
+    var disp = document.getElementById('slug-display');
+    var hint = document.getElementById('slug-hint-val');
+    var inp  = document.getElementById('slug-hidden');
+    if (disp) disp.textContent = id;
+    if (hint) hint.textContent = id;
+    if (inp)  inp.value        = id;
+  }
+
   function openModal() {
+    applyPartyId(SERVER_SLUG || generatePartyId());
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
@@ -498,6 +522,9 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
 
   document.getElementById('btn-new-party').addEventListener('click', openModal);
   document.getElementById('btn-close-modal').addEventListener('click', closeModal);
+
+  var regenBtn = document.getElementById('btn-regen-slug');
+  if (regenBtn) regenBtn.addEventListener('click', function() { applyPartyId(generatePartyId()); });
 
   overlay.addEventListener('click', function (e) {
     if (e.target === overlay) closeModal();
