@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/includes/db.php';
 require_once dirname(__DIR__) . '/includes/image.php';
+require_once dirname(__DIR__) . '/includes/logger.php';
 
 // ── Session setup ───────────────────────────────────────────
 ini_set('session.cookie_httponly', '1');
@@ -63,7 +64,13 @@ if (!$logged_in && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'
         $pw         = $_POST['password'] ?? '';
         $email_hash = hash('sha256', strtolower($email));
 
+        $client_ip = partial_ip($_SERVER['REMOTE_ADDR'] ?? '');
+
         if (db_is_login_locked($email_hash)) {
+            mpd_log('user.login', [
+                'event.outcome' => 'locked',
+                'client.address'=> $client_ip,
+            ]);
             $error_msg = 'Too many failed attempts. Please wait 15 minutes and try again.';
         } else {
             $user = mpd_get_user_by_email($email);
@@ -79,6 +86,13 @@ if (!$logged_in && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'
                 $_SESSION['admin_csrf']       = bin2hex(random_bytes(32));
                 mpd_update_last_login((int)$user['id']);
 
+                mpd_log('user.login', [
+                    'event.outcome' => 'success',
+                    'user.id'       => (int)$user['id'],
+                    'user.role'     => $user['role'],
+                    'client.address'=> $client_ip,
+                ]);
+
                 // Organizer: resolve their party
                 if ($user['role'] === 'organizer') {
                     $parties = mpd_get_parties_for_organizer((int)$user['id']);
@@ -91,6 +105,10 @@ if (!$logged_in && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'
                 exit;
             } else {
                 db_record_login_failure($email_hash);
+                mpd_log('user.login', [
+                    'event.outcome' => 'failure',
+                    'client.address'=> $client_ip,
+                ]);
                 $error_msg = 'Login failed. Please check your email and password.';
                 usleep(500_000);
             }
