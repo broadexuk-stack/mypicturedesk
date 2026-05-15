@@ -539,8 +539,21 @@
   let cameraStream = null;
   let facingMode   = 'user'; // front camera default for selfies
   let timerTick    = null;
+  let wakeLock     = null;
+
+  async function acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+
+  function releaseWakeLock() {
+    if (!wakeLock) return;
+    try { wakeLock.release(); } catch (e) {}
+    wakeLock = null;
+  }
 
   function stopCameraStream() {
+    releaseWakeLock();
     if (cameraStream) {
       cameraStream.getTracks().forEach(t => t.stop());
       cameraStream = null;
@@ -567,6 +580,7 @@
       } else {
         viewfinderVideo.classList.add('rear');
       }
+      acquireWakeLock();
       showState('viewfinder');
     } catch (err) {
       showError('Camera access was denied. Please allow camera permission and try again.');
