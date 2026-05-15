@@ -9,6 +9,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/image.php';
+require_once __DIR__ . '/includes/cloudinary.php';
 
 $slug = preg_replace('/[^a-z0-9\-]/', '', strtolower(trim($_GET['id'] ?? '')));
 if ($slug === '') { http_response_code(404); exit; }
@@ -20,7 +21,7 @@ $party_id = (int)$party['id'];
 
 $nonce = base64_encode(random_bytes(16));
 header("Content-Security-Policy: default-src 'self'; "
-     . "img-src 'self' data: blob:; "
+     . "img-src 'self' data: blob: https://res.cloudinary.com; "
      . "script-src 'nonce-$nonce'; "
      . "style-src 'nonce-$nonce' https://fonts.googleapis.com; "
      . "font-src https://fonts.gstatic.com; "
@@ -34,10 +35,13 @@ $photos_raw  = array_reverse(db_get_photos('approved', $party_id));
 $photos_data = [];
 foreach ($photos_raw as $p) {
     $ext = output_extension($p['original_extension']);
+    $url = !empty($p['cloudinary_public_id']) && cloudinary_globally_configured()
+        ? cloudinary_full_url($p['cloudinary_public_id'])
+        : 'image.php?party=' . urlencode($slug)
+          . '&dir=gallery&uuid=' . urlencode($p['uuid'])
+          . '&ext=' . urlencode($ext);
     $photos_data[] = [
-        'url'         => 'image.php?party=' . urlencode($slug)
-                       . '&dir=gallery&uuid=' . urlencode($p['uuid'])
-                       . '&ext=' . urlencode($ext),
+        'url'         => $url,
         'uploaded_by' => (string)($p['uploaded_by'] ?? ''),
         'timestamp'   => (string)$p['upload_timestamp'],
     ];
