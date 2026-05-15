@@ -11,6 +11,7 @@ require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/includes/db.php';
 require_once dirname(__DIR__) . '/includes/image.php';
 require_once dirname(__DIR__) . '/includes/logger.php';
+require_once dirname(__DIR__) . '/includes/cloudinary.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -66,6 +67,9 @@ if ($action === 'purge_all') {
         if ($dirs) {
             @unlink($dirs['gallery']        . '/' . $p['uuid'] . '.' . $dskExt);
             @unlink($dirs['gallery_thumbs'] . '/' . $p['uuid'] . '.' . $dskExt);
+        }
+        if (!empty($p['cloudinary_public_id'])) {
+            cloudinary_delete($p['cloudinary_public_id']);
         }
         db_set_photo_status($p['uuid'], $party_id, 'rejected');
     }
@@ -127,6 +131,20 @@ if ($action === 'approve') {
         @unlink($dirs['quarantine_thumbs'] . '/' . $uuid . '.jpg');
     }
 
+    // ── Upload to Cloudinary if enabled for this party ────────
+    if (!empty($party['cloudinary_enabled']) && cloudinary_globally_configured()) {
+        $cld_id = cloudinary_public_id($party['slug'], $uuid);
+        $result = cloudinary_upload($gPath, $cld_id);
+        if ($result !== false) {
+            db_set_photo_cloudinary_id($uuid, $party_id, $cld_id);
+            // Local gallery copies are no longer needed
+            @unlink($gPath);
+            @unlink($tPath);
+        } else {
+            error_log("moderate.php: Cloudinary upload failed for $uuid — keeping local files");
+        }
+    }
+
     db_set_photo_status($uuid, $party_id, 'approved');
     mpd_log('photo.approved', [
         'photo.uuid'  => $uuid,
@@ -150,6 +168,9 @@ if ($action === 'reject') {
         $dirs['gallery_thumbs']    . '/' . $uuid . '.' . $dskExt,
     ] as $path) {
         if (file_exists($path)) @unlink($path);
+    }
+    if (!empty($photo['cloudinary_public_id'])) {
+        cloudinary_delete($photo['cloudinary_public_id']);
     }
     db_set_photo_status($uuid, $party_id, 'rejected');
     mpd_log('photo.rejected', [

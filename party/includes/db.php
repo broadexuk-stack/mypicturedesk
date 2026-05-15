@@ -95,6 +95,13 @@ function db_get_photo_by_uuid(string $uuid, int $party_id): array|false {
     return $st->fetch();
 }
 
+function db_set_photo_cloudinary_id(string $uuid, int $party_id, string $public_id): void {
+    $st = db_pdo()->prepare(
+        'UPDATE photos SET cloudinary_public_id = :cid WHERE uuid = :uuid AND party_id = :party_id'
+    );
+    $st->execute([':cid' => $public_id, ':uuid' => $uuid, ':party_id' => $party_id]);
+}
+
 function db_set_photo_status(string $uuid, int $party_id, string $status): void {
     $col = match ($status) {
         'approved' => ', approved_at = NOW()',
@@ -392,7 +399,7 @@ function mpd_create_party(
 }
 
 function mpd_update_party(int $id, array $fields): void {
-    $allowed = ['party_name', 'organiser_name', 'event_datetime', 'party_info', 'notify_email', 'colour_theme', 'retention_days', 'timer_camera_enabled'];
+    $allowed = ['party_name', 'organiser_name', 'event_datetime', 'party_info', 'notify_email', 'colour_theme', 'retention_days', 'timer_camera_enabled', 'cloudinary_enabled'];
     $sets    = [];
     $params  = [':id' => $id];
     foreach ($fields as $col => $val) {

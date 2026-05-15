@@ -37,13 +37,14 @@ $approved = db_get_photos('approved', $party_id);
 $removed  = db_get_photos('removed',  $party_id);
 
 $slim = fn(array $p) => [
-    'uuid'               => $p['uuid'],
-    'original_extension' => $p['original_extension'],
-    'upload_timestamp'   => $p['upload_timestamp'],
-    'approved_at'        => $p['approved_at'] ?? null,
-    'ip_display'         => $p['ip_display'],
-    'uploaded_by'        => $p['uploaded_by'] ?? null,
-    'status'             => $p['status'],
+    'uuid'                 => $p['uuid'],
+    'original_extension'   => $p['original_extension'],
+    'upload_timestamp'     => $p['upload_timestamp'],
+    'approved_at'          => $p['approved_at'] ?? null,
+    'ip_display'           => $p['ip_display'],
+    'uploaded_by'          => $p['uploaded_by'] ?? null,
+    'status'               => $p['status'],
+    'cloudinary_public_id' => $p['cloudinary_public_id'] ?? null,
 ];
 
 echo json_encode([

@@ -5,6 +5,7 @@ require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/includes/db.php';
 require_once dirname(__DIR__) . '/includes/image.php';
 require_once dirname(__DIR__) . '/includes/logger.php';
+require_once dirname(__DIR__) . '/includes/cloudinary.php';
 
 // ── Session setup ───────────────────────────────────────────
 ini_set('session.cookie_httponly', '1');
@@ -170,6 +171,9 @@ function thumb_url(array $p, string $slug): string {
     if ($p['status'] === 'pending' || ($p['status'] === 'removed' && empty($p['approved_at']))) {
         return 'thumb.php?uuid=' . urlencode($p['uuid']) . '&party=' . urlencode($slug);
     }
+    if (!empty($p['cloudinary_public_id'])) {
+        return cloudinary_admin_thumb_url($p['cloudinary_public_id']);
+    }
     $ext = output_extension($p['original_extension']);
     return '../image.php?party=' . urlencode($slug)
          . '&dir=gallery_thumbs&uuid=' . urlencode($p['uuid']) . '&ext=' . urlencode($ext);
@@ -178,6 +182,9 @@ function thumb_url(array $p, string $slug): string {
 function full_url(array $p, string $slug): string {
     if ($p['status'] === 'pending' || ($p['status'] === 'removed' && empty($p['approved_at']))) {
         return 'thumb.php?uuid=' . urlencode($p['uuid']) . '&party=' . urlencode($slug) . '&full=1';
+    }
+    if (!empty($p['cloudinary_public_id'])) {
+        return cloudinary_full_url($p['cloudinary_public_id']);
     }
     $ext = output_extension($p['original_extension']);
     return '../image.php?party=' . urlencode($slug)
@@ -717,6 +724,7 @@ if ($sa_pages > 1):
   const SA_PARTY_FILTER = <?= json_encode($sa_party_filter) ?>;
   const SA_PER_PAGE     = <?= json_encode($sa_per_page) ?>;
   const SA_PAGE         = <?= json_encode($sa_page) ?>;
+  const CLOUD_NAME    = <?= json_encode(defined('CLOUDINARY_CLOUD_NAME') ? CLOUDINARY_CLOUD_NAME : '') ?>;
 
   // ── Lightbox ─────────────────────────────────────────────────
   const lb         = document.getElementById('lb');
@@ -955,10 +963,17 @@ if ($sa_pages > 1):
     syncRemovedUI(Math.max(0, (parseInt(el.textContent, 10) || 0) + delta));
   }
 
+  function cldUrl(public_id, transforms) {
+    return 'https://res.cloudinary.com/' + CLOUD_NAME + '/image/upload/' + transforms + '/' + public_id;
+  }
+
   function thumbUrl(p) {
     const ext = outputExt(p.original_extension);
     if (p.status === 'pending' || (p.status === 'removed' && !p.approved_at)) {
       return 'thumb.php?uuid=' + encodeURIComponent(p.uuid) + '&party=' + encodeURIComponent(PARTY_SLUG);
+    }
+    if (p.cloudinary_public_id && CLOUD_NAME) {
+      return cldUrl(p.cloudinary_public_id, 'w_300,h_300,c_fill,g_auto:faces,f_auto,q_auto');
     }
     return '../image.php?party=' + encodeURIComponent(PARTY_SLUG)
          + '&dir=gallery_thumbs&uuid=' + encodeURIComponent(p.uuid) + '&ext=' + encodeURIComponent(ext);
@@ -969,6 +984,9 @@ if ($sa_pages > 1):
     if (p.status === 'pending' || (p.status === 'removed' && !p.approved_at)) {
       return 'thumb.php?uuid=' + encodeURIComponent(p.uuid)
            + '&party=' + encodeURIComponent(PARTY_SLUG) + '&full=1';
+    }
+    if (p.cloudinary_public_id && CLOUD_NAME) {
+      return cldUrl(p.cloudinary_public_id, 'f_auto,q_auto');
     }
     return '../image.php?party=' + encodeURIComponent(PARTY_SLUG)
          + '&dir=gallery&uuid=' + encodeURIComponent(p.uuid) + '&ext=' + encodeURIComponent(ext);
