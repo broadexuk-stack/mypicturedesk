@@ -308,6 +308,39 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     .slug-id-row { display: flex; gap: 8px; align-items: center; }
     .slug-id-box { flex: 1; font-family: inherit; font-size: 0.9rem; background: #160f35; border: 2px solid #4b35a0; border-radius: 8px; padding: 10px 14px; color: #f0ebff; }
     .slug-hint-val { font-weight: 700; color: #9c7fff; }
+
+    /* Column header tooltips */
+    .has-tip { position: relative; cursor: help; }
+    .has-tip::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #160f35;
+      color: #c9b8ff;
+      font-size: 0.72rem;
+      font-weight: 400;
+      white-space: nowrap;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid #4b35a0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+      text-transform: none;
+      letter-spacing: 0;
+      z-index: 100;
+    }
+    .has-tip:hover::after { opacity: 1; }
+
+    /* Auto-approve confirm modal */
+    .modal-sm { max-width: 400px; text-align: center; }
+    .modal-icon { font-size: 2.5rem; margin-bottom: 14px; }
+    .modal-confirm-text { color: #c9b8ff; font-size: 0.92rem; line-height: 1.6; margin-bottom: 24px; }
+    .modal-actions { display: flex; gap: 12px; justify-content: center; }
+    .btn-yes { background: #e67e22; color: #fff; }
+    .btn-yes:hover { background: #d35400; }
   </style>
 </head>
 <body>
@@ -348,8 +381,8 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
           <th>Event Date</th>
           <th>Photos</th>
           <th>Status</th>
-          <?php if (cloudinary_globally_configured()): ?><th title="Cloudinary CDN storage">☁️</th><?php endif; ?>
-          <th title="Auto-approve uploads">⚡</th>
+          <?php if (cloudinary_globally_configured()): ?><th class="has-tip" data-tip="Store approved photos on Cloudinary CDN — served globally, local copies removed">☁️</th><?php endif; ?>
+          <th class="has-tip" data-tip="Auto-approve: uploaded photos go live immediately without moderation">⚡</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -572,6 +605,22 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
   </div>
 </div>
 
+<!-- ── Auto-approve confirmation modal ── -->
+<div class="modal-overlay" id="aa-confirm-overlay">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="aa-confirm-title">
+    <div class="modal-icon">⚠️</div>
+    <h2 id="aa-confirm-title">Enable Auto-Approve?</h2>
+    <p class="modal-confirm-text">
+      Warning — all pictures will go live immediately without moderation.<br>
+      Do you agree to this?
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="aa-confirm-no">No, keep off</button>
+      <button class="btn btn-yes"   id="aa-confirm-yes">Yes, enable it</button>
+    </div>
+  </div>
+</div>
+
 <script nonce="<?= $nonce ?>">
 (function () {
   var overlay  = document.getElementById('modal-overlay');
@@ -629,8 +678,42 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     }
   });
 
+  // ── Auto-approve confirm modal ────────────────────────────────
+  var aaOverlay   = document.getElementById('aa-confirm-overlay');
+  var aaBtnYes    = document.getElementById('aa-confirm-yes');
+  var aaBtnNo     = document.getElementById('aa-confirm-no');
+  var aaPendingForm = null;
+  var aaPendingCb   = null;
+
+  function closeAaModal() {
+    aaOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+    if (aaPendingCb) aaPendingCb.checked = false;
+    aaPendingForm = aaPendingCb = null;
+  }
+
+  aaBtnYes.addEventListener('click', function () {
+    aaOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+    if (aaPendingForm) aaPendingForm.submit();
+    aaPendingForm = aaPendingCb = null;
+  });
+  aaBtnNo.addEventListener('click', closeAaModal);
+  aaOverlay.addEventListener('click', function (e) {
+    if (e.target === aaOverlay) closeAaModal();
+  });
+
   document.querySelectorAll('.cloud-toggle-form input[type=checkbox]').forEach(function (cb) {
-    cb.addEventListener('change', function () { cb.closest('form').submit(); });
+    cb.addEventListener('change', function () {
+      if (cb.name === 'auto_approve' && cb.checked) {
+        aaPendingForm = cb.closest('form');
+        aaPendingCb   = cb;
+        aaOverlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      } else {
+        cb.closest('form').submit();
+      }
+    });
   });
 
   document.querySelectorAll('form[data-confirm]').forEach(function (form) {
