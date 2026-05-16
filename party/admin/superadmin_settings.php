@@ -54,6 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success = 'Email templates saved.';
         }
 
+        if ($action === 'save_print_templates') {
+            mpd_update_setting('print_a4_body',    trim($_POST['print_a4_body']    ?? '') ?: null);
+            mpd_update_setting('print_label_body', trim($_POST['print_label_body'] ?? '') ?: null);
+            $success = 'Print templates saved.';
+        }
+
         if ($action === 'save_smtp') {
             $keys = ['smtp_host','smtp_port','smtp_user','smtp_pass','smtp_from','smtp_from_name','smtp_secure'];
             foreach ($keys as $k) {
@@ -278,7 +284,43 @@ $s = mpd_get_all_settings();
                 placeholder="Leave blank to use the default template"><?= htmlspecialchars($s['email_notify_body'] ?? '') ?></textarea>
     </div>
 
-    <button type="submit" class="btn btn-primary">Save Templates</button>
+    <button type="submit" class="btn btn-primary">Save Email Templates</button>
+  </form>
+
+  <hr>
+
+  <!-- ── Print templates ── -->
+  <h2>Print Templates</h2>
+  <p style="font-size:.82rem;color:#6b5ca5;margin-bottom:12px;">
+    Full HTML documents written into a popup window and printed immediately. Edit the CSS and layout freely.
+    Leave blank to restore the default. <strong style="color:#c9b8ff;">{{qr_svg}}</strong> is replaced by JS at print time and must remain in the template.
+  </p>
+
+  <div style="background:#160f35;border:1px solid #2d1b69;border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:0.78rem;color:#9c7fff;line-height:1.8;">
+    <strong style="color:#c9b8ff;display:block;margin-bottom:6px;">Available placeholders</strong>
+    <code>{{party_name}}</code> — Party name (HTML-escaped) &nbsp;|&nbsp;
+    <code>{{slug}}</code> — Six-character party code &nbsp;|&nbsp;
+    <code>{{guest_url}}</code> — Full guest URL &nbsp;|&nbsp;
+    <code>{{qr_svg}}</code> — Vector SVG QR code <em style="color:#6b5ca5;">(injected by JS — must be present)</em>
+  </div>
+
+  <form method="post" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+    <input type="hidden" name="action" value="save_print_templates">
+
+    <div class="form-row">
+      <label for="print_a4_body">A4 Print Layout <span style="font-weight:400;color:#6b5ca5;">(🖨 Print A4 button on QR code page)</span></label>
+      <textarea id="print_a4_body" name="print_a4_body" rows="16"
+                placeholder="Leave blank to use the default template"><?= htmlspecialchars($s['print_a4_body'] ?? '') ?></textarea>
+    </div>
+
+    <div class="form-row" style="margin-top:20px;">
+      <label for="print_label_body">6×4 Label Layout <span style="font-weight:400;color:#6b5ca5;">(🖨 Print 6×4 Label button on QR code page)</span></label>
+      <textarea id="print_label_body" name="print_label_body" rows="16"
+                placeholder="Leave blank to use the default template"><?= htmlspecialchars($s['print_label_body'] ?? '') ?></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save Print Templates</button>
   </form>
 
   <hr>

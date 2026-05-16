@@ -54,6 +54,17 @@ header('X-Frame-Options: DENY');
 
 $guest_url  = BASE_URL . '/party?id=' . urlencode($party['slug']);
 $party_name = $party['party_name'];
+
+$print_a4_tpl    = mpd_render_print_template('print_a4_body', [
+    'party_name' => htmlspecialchars($party_name),
+    'slug'       => htmlspecialchars($party['slug']),
+    'guest_url'  => htmlspecialchars($guest_url),
+]);
+$print_label_tpl = mpd_render_print_template('print_label_body', [
+    'party_name' => htmlspecialchars($party_name),
+    'slug'       => htmlspecialchars($party['slug']),
+    'guest_url'  => htmlspecialchars($guest_url),
+]);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -131,9 +142,11 @@ $party_name = $party['party_name'];
 (function () {
   'use strict';
 
-  const GUEST_URL  = <?= json_encode($guest_url) ?>;
-  const PARTY_NAME = <?= json_encode($party_name) ?>;
-  const SLUG       = <?= json_encode($party['slug']) ?>;
+  const GUEST_URL       = <?= json_encode($guest_url) ?>;
+  const PARTY_NAME      = <?= json_encode($party_name) ?>;
+  const SLUG            = <?= json_encode($party['slug']) ?>;
+  const PRINT_A4_TPL    = <?= json_encode($print_a4_tpl,    JSON_HEX_TAG) ?>;
+  const PRINT_LABEL_TPL = <?= json_encode($print_label_tpl, JSON_HEX_TAG) ?>;
 
   const spinner      = document.getElementById('qr-spinner');
   const qrCanvas     = document.getElementById('qr-canvas');
@@ -143,10 +156,6 @@ $party_name = $party['party_name'];
   const printLblBtn  = document.getElementById('btn-print-label');
 
   let svgString = '';
-
-  function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
 
   // ── Generate QR into an offscreen canvas, then composite with label ──
   function generate() {
@@ -205,64 +214,14 @@ $party_name = $party['party_name'];
   function printA4() {
     const w = window.open('', '_blank');
     if (!w) return;
-    w.document.write(`<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8">
-<title>QR Code – ${escHtml(PARTY_NAME)}</title>
-<style>
-  @page { size: A4 portrait; margin: 15mm; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; text-align: center; }
-  .qr-wrap { display: inline-block; width: 120mm; margin: 0 auto 8mm; }
-  .qr-wrap svg { width: 100%; height: auto; display: block; }
-  h1 { font-size: 22pt; font-weight: 900; margin-bottom: 4mm; }
-  .party-code { font-size: 14pt; font-weight: bold; margin-bottom: 6mm; letter-spacing: 0.05em; }
-  .instruction { font-size: 11pt; margin-bottom: 4mm; }
-  .guest-url { font-size: 8pt; color: #333; word-break: break-all; margin-top: 8mm; border-top: 0.5pt solid #ccc; padding-top: 3mm; }
-</style>
-</head><body>
-<h1>${escHtml(PARTY_NAME)}</h1>
-<div class="qr-wrap">${svgString}</div>
-<p class="party-code">Your PartyPix Code is: <strong>${escHtml(SLUG)}</strong></p>
-<p class="instruction">Scan the code above to upload your photos to the gallery.</p>
-<p class="guest-url">${escHtml(GUEST_URL)}</p>
-<script>window.onload=function(){window.print();}<\/script>
-</body></html>`);
+    w.document.write(PRINT_A4_TPL.replace('{{qr_svg}}', svgString));
     w.document.close();
   }
 
   function printLabel() {
     const w = window.open('', '_blank');
     if (!w) return;
-    w.document.write(`<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8">
-<title>QR Label – ${escHtml(PARTY_NAME)}</title>
-<style>
-  @page { size: 6in 4in; margin: 4mm; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; width: 6in; height: 4in; overflow: hidden; }
-  .layout { display: flex; align-items: center; height: 100%; gap: 6mm; padding: 2mm; }
-  .qr-col { flex: 0 0 72mm; }
-  .qr-col svg { width: 72mm; height: 72mm; display: block; }
-  .text-col { flex: 1; text-align: left; }
-  h1 { font-size: 16pt; font-weight: 900; margin-bottom: 3mm; line-height: 1.2; }
-  .party-code { font-size: 11pt; font-weight: bold; margin-bottom: 4mm; }
-  .instruction { font-size: 9pt; margin-bottom: 4mm; line-height: 1.4; }
-  .guest-url { font-size: 7pt; color: #333; word-break: break-all; border-top: 0.5pt solid #ccc; padding-top: 2mm; }
-</style>
-</head><body>
-<div class="layout">
-  <div class="qr-col">${svgString}</div>
-  <div class="text-col">
-    <h1>${escHtml(PARTY_NAME)}</h1>
-    <p class="party-code">Your PartyPix Code is:<br><strong>${escHtml(SLUG)}</strong></p>
-    <p class="instruction">Scan the QR code to upload your photos to the gallery.</p>
-    <p class="guest-url">${escHtml(GUEST_URL)}</p>
-  </div>
-</div>
-<script>window.onload=function(){window.print();}<\/script>
-</body></html>`);
+    w.document.write(PRINT_LABEL_TPL.replace('{{qr_svg}}', svgString));
     w.document.close();
   }
 

@@ -588,3 +588,78 @@ function mpd_render_email(string $key, array $vars): string {
     }
     return $tpl;
 }
+
+// ── K. Print templates ───────────────────────────────────────
+
+function mpd_default_print_template(string $key): string {
+    return match ($key) {
+        'print_a4_body' => <<<'HTML'
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<title>QR Code – {{party_name}}</title>
+<style>
+  @page { size: A4 portrait; margin: 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; text-align: center; }
+  .qr-wrap { display: inline-block; width: 120mm; margin: 0 auto 8mm; }
+  .qr-wrap svg { width: 100%; height: auto; display: block; }
+  h1 { font-size: 22pt; font-weight: 900; margin-bottom: 4mm; }
+  .party-code { font-size: 14pt; font-weight: bold; margin-bottom: 6mm; letter-spacing: 0.05em; }
+  .instruction { font-size: 11pt; margin-bottom: 4mm; }
+  .guest-url { font-size: 8pt; color: #333; word-break: break-all; margin-top: 8mm; border-top: 0.5pt solid #ccc; padding-top: 3mm; }
+</style>
+</head><body>
+<h1>{{party_name}}</h1>
+<div class="qr-wrap">{{qr_svg}}</div>
+<p class="party-code">Your PartyPix Code is: <strong>{{slug}}</strong></p>
+<p class="instruction">Scan the code above to upload your photos to the gallery.</p>
+<p class="guest-url">{{guest_url}}</p>
+<script>window.onload=function(){window.print();}</script>
+</body></html>
+HTML,
+        'print_label_body' => <<<'HTML'
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<title>QR Label – {{party_name}}</title>
+<style>
+  @page { size: 6in 4in; margin: 4mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; width: 6in; height: 4in; overflow: hidden; }
+  .layout { display: flex; align-items: center; height: 100%; gap: 6mm; padding: 2mm; }
+  .qr-col { flex: 0 0 72mm; }
+  .qr-col svg { width: 72mm; height: 72mm; display: block; }
+  .text-col { flex: 1; text-align: left; }
+  h1 { font-size: 16pt; font-weight: 900; margin-bottom: 3mm; line-height: 1.2; }
+  .party-code { font-size: 11pt; font-weight: bold; margin-bottom: 4mm; }
+  .instruction { font-size: 9pt; margin-bottom: 4mm; line-height: 1.4; }
+  .guest-url { font-size: 7pt; color: #333; word-break: break-all; border-top: 0.5pt solid #ccc; padding-top: 2mm; }
+</style>
+</head><body>
+<div class="layout">
+  <div class="qr-col">{{qr_svg}}</div>
+  <div class="text-col">
+    <h1>{{party_name}}</h1>
+    <p class="party-code">Your PartyPix Code is:<br><strong>{{slug}}</strong></p>
+    <p class="instruction">Scan the QR code to upload your photos to the gallery.</p>
+    <p class="guest-url">{{guest_url}}</p>
+  </div>
+</div>
+<script>window.onload=function(){window.print();}</script>
+</body></html>
+HTML,
+        default => '',
+    };
+}
+
+function mpd_render_print_template(string $key, array $vars): string {
+    $tpl = mpd_get_setting($key);
+    if ($tpl === null || trim($tpl) === '') {
+        $tpl = mpd_default_print_template($key);
+    }
+    foreach ($vars as $k => $v) {
+        $tpl = str_replace('{{' . $k . '}}', (string)$v, $tpl);
+    }
+    return $tpl;
+}
