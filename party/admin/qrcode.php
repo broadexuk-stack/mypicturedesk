@@ -82,6 +82,12 @@ $party_name = $party['party_name'];
     .copy-btn { margin-left: 10px; padding: 5px 14px; background: #4b35a0; border: none; color: #f0ebff; border-radius: 7px; font-size: 0.78rem; cursor: pointer; font-family: inherit; }
     .copy-btn:hover { background: #5b45b0; }
     .spinner { color: #6b5ca5; font-size: 0.85rem; margin: 20px 0; }
+    .btn-row { margin-bottom: 12px; }
+    .print-btn-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; }
+    .btn-print { padding: 11px 22px; background: #2d1b69; color: #c9b8ff; border: 2px solid #4b35a0; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; font-family: inherit; }
+    .btn-print:hover:not(:disabled) { background: #3d2494; color: #f0ebff; }
+    .btn-print:disabled { opacity: 0.4; cursor: not-allowed; }
+    .qr-hint { font-size: 0.78rem; color: #6b5ca5; }
   </style>
 </head>
 <body>
@@ -105,11 +111,16 @@ $party_name = $party['party_name'];
     <canvas id="qr-canvas" hidden></canvas>
   </div>
 
-  <div style="margin-bottom:16px;">
+  <div class="btn-row">
     <button class="btn-dl" id="btn-download" disabled>⬇ Download PNG</button>
   </div>
 
-  <p style="font-size:0.78rem;color:#6b5ca5;">
+  <div class="print-btn-row">
+    <button class="btn-print" id="btn-print-a4" disabled>🖨 Print A4</button>
+    <button class="btn-print" id="btn-print-label" disabled>🖨 Print 6×4 Label</button>
+  </div>
+
+  <p class="qr-hint">
     Print or display this code at your event so guests can scan to upload photos.
   </p>
 </div>
@@ -124,14 +135,22 @@ $party_name = $party['party_name'];
   const PARTY_NAME = <?= json_encode($party_name) ?>;
   const SLUG       = <?= json_encode($party['slug']) ?>;
 
-  const spinner   = document.getElementById('qr-spinner');
-  const qrCanvas  = document.getElementById('qr-canvas');
-  const dlBtn     = document.getElementById('btn-download');
-  const copyBtn   = document.getElementById('btn-copy');
+  const spinner      = document.getElementById('qr-spinner');
+  const qrCanvas     = document.getElementById('qr-canvas');
+  const dlBtn        = document.getElementById('btn-download');
+  const copyBtn      = document.getElementById('btn-copy');
+  const printA4Btn   = document.getElementById('btn-print-a4');
+  const printLblBtn  = document.getElementById('btn-print-label');
+
+  let svgString = '';
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
 
   // ── Generate QR into an offscreen canvas, then composite with label ──
   function generate() {
-    // First, render QR into a temporary canvas via the library
+    // Canvas version for on-screen display and PNG download
     QRCode.toCanvas(document.createElement('canvas'), GUEST_URL, {
       width: 320,
       margin: 2,
@@ -142,7 +161,6 @@ $party_name = $party['party_name'];
         return;
       }
 
-      // Composite: QR + party name label on final canvas
       const PAD   = 16;
       const LABEL = 28;
       const W     = tempCanvas.width + PAD * 2;
@@ -152,14 +170,10 @@ $party_name = $party['party_name'];
       qrCanvas.height = H;
       const ctx = qrCanvas.getContext('2d');
 
-      // White background
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, W, H);
-
-      // QR code
       ctx.drawImage(tempCanvas, PAD, PAD);
 
-      // Party name label
       ctx.fillStyle = '#2d1b69';
       ctx.font      = 'bold 16px Nunito, sans-serif';
       ctx.textAlign = 'center';
@@ -168,6 +182,15 @@ $party_name = $party['party_name'];
       spinner.remove();
       qrCanvas.hidden = false;
       dlBtn.disabled  = false;
+    });
+
+    // SVG version for print (vector, B&W)
+    QRCode.toString(GUEST_URL, { type: 'svg', margin: 1, color: { dark: '#000000', light: '#ffffff' } }, function (err, svg) {
+      if (!err) {
+        svgString = svg;
+        printA4Btn.disabled  = false;
+        printLblBtn.disabled = false;
+      }
     });
   }
 
@@ -178,6 +201,71 @@ $party_name = $party['party_name'];
     generate();
   }
 
+  // ── Print helpers ─────────────────────────────────────────
+  function printA4() {
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<title>QR Code – ${escHtml(PARTY_NAME)}</title>
+<style>
+  @page { size: A4 portrait; margin: 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; text-align: center; }
+  .qr-wrap { display: inline-block; width: 120mm; margin: 0 auto 8mm; }
+  .qr-wrap svg { width: 100%; height: auto; display: block; }
+  h1 { font-size: 22pt; font-weight: 900; margin-bottom: 4mm; }
+  .party-code { font-size: 14pt; font-weight: bold; margin-bottom: 6mm; letter-spacing: 0.05em; }
+  .instruction { font-size: 11pt; margin-bottom: 4mm; }
+  .guest-url { font-size: 8pt; color: #333; word-break: break-all; margin-top: 8mm; border-top: 0.5pt solid #ccc; padding-top: 3mm; }
+</style>
+</head><body>
+<h1>${escHtml(PARTY_NAME)}</h1>
+<div class="qr-wrap">${svgString}</div>
+<p class="party-code">Your PartyPix Code is: <strong>${escHtml(SLUG)}</strong></p>
+<p class="instruction">Scan the code above to upload your photos to the gallery.</p>
+<p class="guest-url">${escHtml(GUEST_URL)}</p>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`);
+    w.document.close();
+  }
+
+  function printLabel() {
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<title>QR Label – ${escHtml(PARTY_NAME)}</title>
+<style>
+  @page { size: 6in 4in; margin: 4mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; width: 6in; height: 4in; overflow: hidden; }
+  .layout { display: flex; align-items: center; height: 100%; gap: 6mm; padding: 2mm; }
+  .qr-col { flex: 0 0 72mm; }
+  .qr-col svg { width: 72mm; height: 72mm; display: block; }
+  .text-col { flex: 1; text-align: left; }
+  h1 { font-size: 16pt; font-weight: 900; margin-bottom: 3mm; line-height: 1.2; }
+  .party-code { font-size: 11pt; font-weight: bold; margin-bottom: 4mm; }
+  .instruction { font-size: 9pt; margin-bottom: 4mm; line-height: 1.4; }
+  .guest-url { font-size: 7pt; color: #333; word-break: break-all; border-top: 0.5pt solid #ccc; padding-top: 2mm; }
+</style>
+</head><body>
+<div class="layout">
+  <div class="qr-col">${svgString}</div>
+  <div class="text-col">
+    <h1>${escHtml(PARTY_NAME)}</h1>
+    <p class="party-code">Your PartyPix Code is:<br><strong>${escHtml(SLUG)}</strong></p>
+    <p class="instruction">Scan the QR code to upload your photos to the gallery.</p>
+    <p class="guest-url">${escHtml(GUEST_URL)}</p>
+  </div>
+</div>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`);
+    w.document.close();
+  }
+
   // ── Download ──────────────────────────────────────────────
   dlBtn.addEventListener('click', function () {
     const link     = document.createElement('a');
@@ -185,6 +273,9 @@ $party_name = $party['party_name'];
     link.href      = qrCanvas.toDataURL('image/png');
     link.click();
   });
+
+  printA4Btn.addEventListener('click', printA4);
+  printLblBtn.addEventListener('click', printLabel);
 
   // ── Copy URL ──────────────────────────────────────────────
   copyBtn.addEventListener('click', function () {
@@ -194,7 +285,6 @@ $party_name = $party['party_name'];
         setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1800);
       });
     } else {
-      // Fallback for older browsers
       const ta = document.createElement('textarea');
       ta.value = GUEST_URL;
       document.body.appendChild(ta);
