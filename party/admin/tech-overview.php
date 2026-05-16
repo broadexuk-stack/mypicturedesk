@@ -697,7 +697,9 @@ removed  ──purge_all──→ [all removed photos deleted]</code></pre>
 </table></div>
 
 <h3>Delete Party</h3>
-<p>Cascades: deletes <code>photos</code>, <code>upload_attempts</code>, the <code>mpd_parties</code> row, and the full directory tree under <code>UPLOADS_BASE/{slug}/</code>. Irreversible — confirmation required.</p>
+<p>Cascades: deletes <code>photos</code>, <code>upload_attempts</code>, the <code>mpd_parties</code> row, and the full directory tree under <code>UPLOADS_BASE/{slug}/</code>. Irreversible.</p>
+<p><strong>Two-step confirmation:</strong> clicking Delete opens a modal requiring the superadmin to type the 6-character party slug exactly before the red DELETE button is enabled. A browser <code>confirm()</code> dialog follows as a second gate. This prevents accidental deletion.</p>
+<p><strong>Pre-delete logging:</strong> before the cascade runs, all photo filenames (<code>uuid.ext</code>) are fetched from the database and included in the <code>party.deleted</code> Axiom event as <code>party.photos[]</code>, providing a permanent record of what was destroyed.</p>
 </section>
 
 <!-- ─── USERS ─── -->
@@ -835,7 +837,7 @@ removed  ──purge_all──→ [all removed photos deleted]</code></pre>
   <tr><th>Event</th><th>Source</th><th>Key Fields</th></tr>
   <tr><td><code>party.created</code></td><td>parties.php</td><td>party.id, party.name, party.slug, organiser.id, party.auto_approve, party.cloudinary, party.retention_days, admin.id</td></tr>
   <tr><td><code>party.toggled</code></td><td>parties.php</td><td>party.id, party.name, party.slug, party.active (bool), admin.id</td></tr>
-  <tr><td><code>party.deleted</code></td><td>parties.php</td><td>party.id, party.name, party.slug, party.photo_count (non-rejected at time of delete), organiser.id, admin.id</td></tr>
+  <tr><td><code>party.deleted</code></td><td>parties.php</td><td>party.id, party.name, party.slug, party.photo_count, party.photos[] (all uuid.ext filenames before cascade), organiser.id, admin.id</td></tr>
   <tr><td><code>user.login</code></td><td>index.php</td><td>event.outcome (success|failure|locked), user.id, user.role, client.address, http.user_agent</td></tr>
   <tr><td><code>user.password_reset</code></td><td>index.php</td><td>target.user_id, email.sent (bool)</td></tr>
   <tr><td><code>email.sent</code></td><td>db.php</td><td>email.to, email.subject, email.via (smtp|php_mail)</td></tr>
@@ -882,6 +884,7 @@ removed  ──purge_all──→ [all removed photos deleted]</code></pre>
   <tr><td><code>db_count_photos_by_status(party_id)</code></td><td>array</td></tr>
   <tr><td><code>db_get_photos_paginated(limit, offset, party_id|null)</code></td><td>array</td></tr>
   <tr><td><code>db_count_all_photos(party_id|null)</code></td><td>int</td></tr>
+  <tr><td><code>db_get_party_photo_filenames(party_id)</code></td><td>string[] — ["uuid.ext", …] ordered by upload_timestamp; used to log filenames before party deletion</td></tr>
 </table></div>
 
 <h3>Rate Limiting</h3>
@@ -923,7 +926,7 @@ removed  ──purge_all──→ [all removed photos deleted]</code></pre>
   <tr><td><code>mpd_generate_unique_slug(len=6)</code></td><td>string</td></tr>
   <tr><td><code>mpd_get_parties_for_organizer(organizer_id)</code></td><td>array</td></tr>
   <tr><td><code>mpd_get_all_parties()</code></td><td>array — with organiser email + photo counts</td></tr>
-  <tr><td><code>mpd_create_party(slug, name, organizer_id, ...)</code></td><td>void</td></tr>
+  <tr><td><code>mpd_create_party(slug, name, organizer_id, ...)</code></td><td>int — new party ID</td></tr>
   <tr><td><code>mpd_update_party(id, fields[])</code></td><td>void — whitelisted fields only</td></tr>
   <tr><td><code>mpd_toggle_party_active(id, bool)</code></td><td>void</td></tr>
   <tr><td><code>mpd_delete_party(id)</code></td><td>void — cascades photos, dirs</td></tr>
