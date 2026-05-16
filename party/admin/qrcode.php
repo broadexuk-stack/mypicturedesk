@@ -211,13 +211,17 @@ $print_label_tpl = mpd_render_print_template('print_label_body', [
   }
 
   // ── Print helpers ─────────────────────────────────────────
+  // Use a Blob URL so the popup renders identically to opening the HTML as a local file.
+  // document.write() can trigger quirks mode and inconsistent CSS rendering.
   function openPrint(tpl) {
-    const w = window.open('', '_blank');
-    if (!w) return;
-    const html = tpl.replace('{{qr_svg}}', svgString);
-    // Inject print trigger — kept out of the editable template to avoid server WAF blocks on <script> in POST data
-    w.document.write(html.replace('</body>', '<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body>'));
-    w.document.close();
+    const printScript = '<' + 'script>window.onload=function(){window.print();}<\/script>';
+    const html = tpl
+      .replace('{{qr_svg}}', svgString)
+      .replace('</body>', printScript + '</body>');
+    const blob = new Blob([html], { type: 'text/html' });
+    const url  = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(function() { URL.revokeObjectURL(url); }, 30000);
   }
 
   function printA4()    { openPrint(PRINT_A4_TPL);    }
