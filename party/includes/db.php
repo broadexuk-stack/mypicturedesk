@@ -601,20 +601,103 @@ function mpd_default_print_template(string $key): string {
 <style>
   @page { size: A4 portrait; margin: 15mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; text-align: center; }
-  .qr-wrap { display: inline-block; width: 120mm; margin: 0 auto 8mm; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #000;
+    background: #fff;
+    text-align: center;
+    padding: 4mm;
+  }
+  .card {
+    width: 100%;
+    border: 3pt solid #000;
+    border-radius: 8mm;
+    padding: 10mm 14mm 8mm;
+    overflow: hidden;
+  }
+  .brand {
+    font-size: 8pt;
+    font-weight: bold;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 5mm;
+  }
+  h1 {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 32pt;
+    font-weight: bold;
+    line-height: 1.2;
+    margin-bottom: 8mm;
+  }
+  .qr-wrap {
+    display: inline-block;
+    width: 108mm;
+    padding: 4mm;
+    border: 1pt solid #ddd;
+    border-radius: 4mm;
+    margin-bottom: 8mm;
+  }
   .qr-wrap svg { width: 100%; height: auto; display: block; }
-  h1 { font-size: 22pt; font-weight: 900; margin-bottom: 4mm; }
-  .party-code { font-size: 14pt; font-weight: bold; margin-bottom: 6mm; letter-spacing: 0.05em; }
-  .instruction { font-size: 11pt; margin-bottom: 4mm; }
-  .guest-url { font-size: 8pt; color: #333; word-break: break-all; margin-top: 8mm; border-top: 0.5pt solid #ccc; padding-top: 3mm; }
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 3mm;
+    width: 108mm;
+    margin: 0 auto 8mm;
+  }
+  .divider-line { flex: 1; height: 0.5pt; background: #bbb; }
+  .divider-dot  { width: 2mm; height: 2mm; background: #000; border-radius: 50%; flex-shrink: 0; }
+  .code-label {
+    font-size: 8pt;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 3mm;
+  }
+  .code-value {
+    display: inline-block;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 26pt;
+    font-weight: bold;
+    letter-spacing: 0.3em;
+    border: 2pt solid #000;
+    padding: 2mm 8mm;
+    border-radius: 3mm;
+    margin-bottom: 8mm;
+  }
+  .instruction {
+    font-size: 10.5pt;
+    line-height: 1.7;
+    color: #444;
+    margin-bottom: 8mm;
+  }
+  .footer {
+    font-size: 6.5pt;
+    color: #bbb;
+    word-break: break-all;
+    border-top: 0.5pt solid #e0e0e0;
+    padding-top: 4mm;
+  }
 </style>
 </head><body>
-<h1>{{party_name}}</h1>
-<div class="qr-wrap">{{qr_svg}}</div>
-<p class="party-code">Your PartyPix Code is: <strong>{{slug}}</strong></p>
-<p class="instruction">Scan the code above to upload your photos to the gallery.</p>
-<p class="guest-url">{{guest_url}}</p>
+<div class="card">
+  <p class="brand">PartyPix</p>
+  <h1>{{party_name}}</h1>
+  <div class="qr-wrap">{{qr_svg}}</div>
+  <div class="divider">
+    <span class="divider-line"></span>
+    <span class="divider-dot"></span>
+    <span class="divider-line"></span>
+  </div>
+  <p class="code-label">Your PartyPix Code is</p>
+  <p class="code-value">{{slug}}</p>
+  <p class="instruction">
+    Point your phone camera at the QR code above<br>
+    to upload your photos to the gallery instantly.
+  </p>
+  <p class="footer">{{guest_url}}</p>
+</div>
 </body></html>
 HTML,
         'print_label_body' => <<<'HTML'

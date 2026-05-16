@@ -211,11 +211,12 @@ $print_label_tpl = mpd_render_print_template('print_label_body', [
   }
 
   // ── Print helpers ─────────────────────────────────────────
-  // Use a Blob URL so the popup renders identically to opening the HTML as a local file.
-  // document.write() can trigger quirks mode and inconsistent CSS rendering.
   function openPrint(tpl) {
-    const printScript = '<' + 'script>window.onload=function(){window.print();}<\/script>';
-    const html = tpl
+    // Strip any existing print-trigger scripts saved in the template to avoid duplicates
+    const stripped = tpl.replace(/<script\b[^>]*>[\s\S]*?window\.(onload|print)[\s\S]*?<\/script>/gi, '');
+    // Small timeout so the browser fully renders before opening the print dialog
+    const printScript = '<' + 'script>setTimeout(function(){window.print();},150);<\/script>';
+    const html = stripped
       .replace('{{qr_svg}}', svgString)
       .replace('</body>', printScript + '</body>');
     const blob = new Blob([html], { type: 'text/html' });
