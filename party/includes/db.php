@@ -518,12 +518,17 @@ function mpd_send_email(string $to, string $subject, string $body_html): bool {
 
     // PHPMailer (recommended — install via Composer)
     if (class_exists('PHPMailer\\PHPMailer\\PHPMailer') && $host !== '') {
-        $mailer = new PHPMailer\PHPMailer\PHPMailer(true);
+        $mailer   = new PHPMailer\PHPMailer\PHPMailer(true);
+        $smtpLog  = [];
         try {
             $mailer->isSMTP();
-            $mailer->Host       = $host;
-            $mailer->Port       = $port;
-            $mailer->Timeout    = 15;
+            $mailer->Host        = $host;
+            $mailer->Port        = $port;
+            $mailer->Timeout     = 15;
+            $mailer->SMTPDebug   = 2; // SERVER — captures server responses
+            $mailer->Debugoutput = static function (string $str) use (&$smtpLog): void {
+                $smtpLog[] = rtrim($str);
+            };
             $mailer->SMTPAuth   = ($user !== '');
             $mailer->Username   = $user;
             $mailer->Password   = $pass;
@@ -536,8 +541,23 @@ function mpd_send_email(string $to, string $subject, string $body_html): bool {
             $mailer->Subject = $subject;
             $mailer->Body    = $body_html;
             $mailer->send();
+            if (function_exists('mpd_log')) {
+                mpd_log('email.sent', [
+                    'email.to'      => $to,
+                    'email.subject' => $subject,
+                    'email.via'     => 'smtp',
+                ]);
+            }
             return true;
-        } catch (Exception) {
+        } catch (Exception $e) {
+            if (function_exists('mpd_log')) {
+                mpd_log('email.failed', [
+                    'email.to'      => $to,
+                    'email.subject' => $subject,
+                    'error.message' => $e->getMessage(),
+                    'smtp.log'      => implode("\n", $smtpLog),
+                ]);
+            }
             return false;
         }
     }

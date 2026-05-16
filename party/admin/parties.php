@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/includes/db.php';
+require_once dirname(__DIR__) . '/includes/logger.php';
 require_once dirname(__DIR__) . '/includes/cloudinary.php';
 
 ini_set('session.cookie_httponly', '1');
