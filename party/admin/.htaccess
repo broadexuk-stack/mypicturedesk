@@ -4,6 +4,6 @@ Options -Indexes
 DirectoryIndex index.php
 
 # Allow only these PHP files; deny everything else (including setup.php once deleted)
-<FilesMatch "^(?!index\.php$|moderate\.php$|thumb\.php$|poll\.php$|download_gallery\.php$|setup\.php$|setpassword\.php$|parties\.php$|organizer_settings\.php$|qrcode\.php$|superadmin_settings\.php$|impersonate\.php$|sa_poll\.php$|switch_party\.php$|toggle_status\.php$|users\.php$)">
+<FilesMatch "^(?!index\.php$|moderate\.php$|thumb\.php$|poll\.php$|download_gallery\.php$|setup\.php$|setpassword\.php$|parties\.php$|organizer_settings\.php$|qrcode\.php$|superadmin_settings\.php$|impersonate\.php$|sa_poll\.php$|switch_party\.php$|toggle_status\.php$|users\.php$|tech-overview\.php$)">
     Require all denied
 </FilesMatch>
