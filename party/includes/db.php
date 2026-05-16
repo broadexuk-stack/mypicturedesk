@@ -525,7 +525,7 @@ function mpd_send_email(string $to, string $subject, string $body_html): bool {
             $mailer->Host        = $host;
             $mailer->Port        = $port;
             $mailer->Timeout     = 15;
-            $mailer->SMTPDebug   = 2; // SERVER — captures server responses
+            $mailer->SMTPDebug   = function_exists('mpd_log') ? 2 : 0;
             $mailer->Debugoutput = static function (string $str) use (&$smtpLog): void {
                 $smtpLog[] = rtrim($str);
             };
