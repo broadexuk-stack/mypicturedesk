@@ -143,9 +143,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'admin_url'         => $admin_url,
                             'setpassword_block' => $setpassword_block,
                         ]);
-                        mpd_send_email($org['email'], "Your party gallery is ready: $name", $body);
+                        $sent = mpd_send_email($org['email'], "Your party gallery is ready: $name", $body);
+                        if (!$sent) {
+                            $success = "Party '$name' created (ID: $slug). Warning: welcome email could not be sent — check SMTP settings.";
+                        }
                     }
-                    $success = "Party '$name' created (ID: $slug).";
+                    if ($success === '') $success = "Party '$name' created (ID: $slug).";
                 }
             }
             if ($party_modal_open) {
@@ -222,8 +225,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'admin_url'         => $admin_url,
                         'setpassword_block' => $setpassword_block,
                     ]);
-                    mpd_send_email($org['email'], "Your party gallery: " . $pt['party_name'], $body);
-                    $success = 'Invite resent to ' . htmlspecialchars($org['email']) . '.';
+                    $sent = mpd_send_email($org['email'], "Your party gallery: " . $pt['party_name'], $body);
+                    if ($sent) {
+                        $success = 'Invite resent to ' . htmlspecialchars($org['email']) . '.';
+                    } else {
+                        $error = 'Failed to send email to ' . htmlspecialchars($org['email']) . '. Check SMTP settings in Superadmin → Settings.';
+                    }
                 }
             }
         }

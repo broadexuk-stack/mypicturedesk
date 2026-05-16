@@ -523,6 +523,7 @@ function mpd_send_email(string $to, string $subject, string $body_html): bool {
             $mailer->isSMTP();
             $mailer->Host       = $host;
             $mailer->Port       = $port;
+            $mailer->Timeout    = 15;
             $mailer->SMTPAuth   = ($user !== '');
             $mailer->Username   = $user;
             $mailer->Password   = $pass;
