@@ -122,14 +122,14 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
             <p class="result-sub">Double-check the six-digit code and try again.</p>
           <?php else: ?>
             <p class="result-text">Welcome to MyPictureDesk</p>
-            <p class="result-sub">Type in the six-digit code for your party, or scan the QR code with your camera.</p>
+            <p class="result-sub">Type in the six-digit code for your party,<br>or scan a PartyPix QR code with your camera.</p>
           <?php endif; ?>
           <form class="code-form" method="get" action="">
             <input class="code-input" type="text" name="id" id="code-input"
                    value="<?= htmlspecialchars($slug) ?>"
                    maxlength="6" autocomplete="off" autocapitalize="none"
                    spellcheck="false" inputmode="text"
-                   placeholder="ab12cd"
+                   placeholder="abc123"
                    aria-label="Six-digit party code">
             <button type="submit" class="btn-code-go">Find my party →</button>
           </form>
