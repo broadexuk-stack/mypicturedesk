@@ -177,6 +177,17 @@ function db_count_all_photos(?int $party_id = null): int {
     return (int)$st->fetchColumn();
 }
 
+function db_get_party_photo_filenames(int $party_id): array {
+    $st = db_pdo()->prepare(
+        'SELECT uuid, original_extension FROM photos WHERE party_id = :pid ORDER BY upload_timestamp ASC'
+    );
+    $st->execute([':pid' => $party_id]);
+    return array_map(
+        static fn($r) => $r['uuid'] . '.' . $r['original_extension'],
+        $st->fetchAll()
+    );
+}
+
 // ── D. Rate limiting ─────────────────────────────────────────
 
 function db_check_rate_limit(int $party_id, string $ip_hash): bool {

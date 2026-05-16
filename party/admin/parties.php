@@ -189,14 +189,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'delete_party') {
             $pid = (int)($_POST['party_id'] ?? 0);
             if ($pid > 0) {
-                $pt          = mpd_get_party_by_id($pid);
-                $photo_count = db_count_all_photos($pid);
+                $pt             = mpd_get_party_by_id($pid);
+                $photo_count    = db_count_all_photos($pid);
+                $photo_filenames = db_get_party_photo_filenames($pid);
                 mpd_delete_party($pid);
                 mpd_log('party.deleted', [
                     'party.id'          => $pid,
                     'party.name'        => $pt['party_name']   ?? '(unknown)',
                     'party.slug'        => $pt['slug']          ?? '(unknown)',
                     'party.photo_count' => $photo_count,
+                    'party.photos'      => $photo_filenames,
                     'organiser.id'      => $pt['organizer_id'] ?? null,
                     'admin.id'          => (int)$_SESSION['mpd_user_id'],
                 ]);
