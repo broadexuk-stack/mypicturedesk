@@ -603,6 +603,76 @@ removed  ──purge_all──→ [all removed photos deleted]</code></pre>
   <li>Centre-crop to <code>THUMB_SIZE × THUMB_SIZE</code> (400px), quality 82</li>
   <li>Save thumbnail</li>
 </ol>
+
+<h3>Captured Metadata — Sample (iPhone 15 Pro Max, GD path)</h3>
+<p>Real <code>photos.exif_data</code> payload from a JPEG uploaded on the GD fallback path (<code>exif_read_data</code>). Imagick captures a superset of these fields plus XMP and ICC profile data.</p>
+
+<h4 style="margin:18px 0 8px;color:var(--purple);">FILE — File-level facts</h4>
+<div class="tbl-wrap"><table>
+  <tr><th>Key</th><th>Raw value</th><th>Meaning</th></tr>
+  <tr><td><code>FILE.FileName</code></td><td>d4811b…324.jpg</td><td>UUID filename on disk</td></tr>
+  <tr><td><code>FILE.FileDateTime</code></td><td>1778946327</td><td>Unix timestamp of quarantine file write</td></tr>
+  <tr><td><code>FILE.FileSize</code></td><td>5 796 884</td><td>~5.5 MB original file size</td></tr>
+  <tr><td><code>FILE.MimeType</code></td><td>image/jpeg</td><td></td></tr>
+  <tr><td><code>FILE.SectionsFound</code></td><td>ANY_TAG, IFD0, EXIF, GPS</td><td>Sections present in this file</td></tr>
+</table></div>
+
+<h4 style="margin:18px 0 8px;color:var(--purple);">COMPUTED — Values derived by exif_read_data</h4>
+<div class="tbl-wrap"><table>
+  <tr><th>Key</th><th>Raw value</th><th>Meaning</th></tr>
+  <tr><td><code>COMPUTED.Width</code></td><td>4032</td><td>Full-resolution width (px)</td></tr>
+  <tr><td><code>COMPUTED.Height</code></td><td>3024</td><td>Full-resolution height (px)</td></tr>
+  <tr><td><code>COMPUTED.ApertureFNumber</code></td><td>f/2.8</td><td>Human-readable aperture</td></tr>
+  <tr><td><code>COMPUTED.IsColor</code></td><td>1</td><td>Colour image (not greyscale)</td></tr>
+</table></div>
+
+<h4 style="margin:18px 0 8px;color:var(--purple);">IFD0 — Primary image directory</h4>
+<div class="tbl-wrap"><table>
+  <tr><th>Key</th><th>Raw value</th><th>Meaning</th></tr>
+  <tr><td><code>IFD0.Make</code></td><td>Apple</td><td>Camera manufacturer</td></tr>
+  <tr><td><code>IFD0.Model</code></td><td>iPhone 15 Pro Max</td><td>Camera model</td></tr>
+  <tr><td><code>IFD0.Orientation</code></td><td>1</td><td>Normal (no rotation needed)</td></tr>
+  <tr><td><code>IFD0.Software</code></td><td>26.4.2</td><td>iOS version at time of capture</td></tr>
+  <tr><td><code>IFD0.DateTime</code></td><td>2026:05:16 12:12:24</td><td>File modification timestamp (local)</td></tr>
+  <tr><td><code>IFD0.XResolution / YResolution</code></td><td>72/1</td><td>72 DPI (display metadata only, not print)</td></tr>
+</table></div>
+
+<h4 style="margin:18px 0 8px;color:var(--purple);">EXIF — Exposure &amp; optics</h4>
+<div class="tbl-wrap"><table>
+  <tr><th>Key</th><th>Raw value</th><th>Decoded</th></tr>
+  <tr><td><code>EXIF.DateTimeOriginal</code></td><td>2026:05:16 12:12:24</td><td>Shutter moment (local time)</td></tr>
+  <tr><td><code>EXIF.UndefinedTag:0x9010</code></td><td>+01:00</td><td>UTC offset (OffsetTime) — BST</td></tr>
+  <tr><td><code>EXIF.ExposureTime</code></td><td>1/313</td><td>1/313 s shutter speed</td></tr>
+  <tr><td><code>EXIF.FNumber</code></td><td>14/5</td><td>f/2.8 aperture</td></tr>
+  <tr><td><code>EXIF.ISOSpeedRatings</code></td><td>50</td><td>ISO 50 (bright conditions)</td></tr>
+  <tr><td><code>EXIF.FocalLength</code></td><td>2052196/131047</td><td>≈ 15.66 mm physical focal length</td></tr>
+  <tr><td><code>EXIF.FocalLengthIn35mmFilm</code></td><td>120</td><td>120 mm equivalent (telephoto lens)</td></tr>
+  <tr><td><code>EXIF.ExposureProgram</code></td><td>2</td><td>Normal program (auto)</td></tr>
+  <tr><td><code>EXIF.MeteringMode</code></td><td>5</td><td>Pattern / multi-segment</td></tr>
+  <tr><td><code>EXIF.Flash</code></td><td>16</td><td>Flash did not fire</td></tr>
+  <tr><td><code>EXIF.ExposureMode</code></td><td>0</td><td>Auto exposure</td></tr>
+  <tr><td><code>EXIF.WhiteBalance</code></td><td>0</td><td>Auto white balance</td></tr>
+  <tr><td><code>EXIF.UndefinedTag:0xA434</code></td><td>iPhone 15 Pro Max back triple camera 15.66mm f/2.8</td><td>Lens model string (LensModel tag)</td></tr>
+  <tr><td><code>EXIF.SubjectLocation</code></td><td>[2001, 1508, 2218, 1328]</td><td>Subject rectangle: centre x, centre y, width, height (px)</td></tr>
+  <tr><td><code>EXIF.ExifImageWidth / Length</code></td><td>4032 × 3024</td><td>Image dimensions as recorded in EXIF</td></tr>
+</table></div>
+
+<h4 style="margin:18px 0 8px;color:var(--purple);">GPS — Location</h4>
+<div class="tbl-wrap"><table>
+  <tr><th>Key</th><th>Raw value</th><th>Decoded</th></tr>
+  <tr><td><code>GPS.GPSLatitudeRef</code></td><td>N</td><td>Northern hemisphere</td></tr>
+  <tr><td><code>GPS.GPSLatitude</code></td><td>["51/1","33/1","5412/100"]</td><td>51° 33′ 54.12″ N</td></tr>
+  <tr><td><code>GPS.GPSLongitudeRef</code></td><td>E</td><td>Eastern hemisphere</td></tr>
+  <tr><td><code>GPS.GPSLongitude</code></td><td>["0/1","38/1","1100/100"]</td><td>0° 38′ 11.00″ E</td></tr>
+  <tr><td><code>GPS.GPSAltitudeRef</code></td><td>0x00</td><td>Above sea level</td></tr>
+  <tr><td><code>GPS.GPSAltitude</code></td><td>242883/4025</td><td>≈ 60.3 m ASL</td></tr>
+  <tr><td><code>GPS.GPSTimeStamp</code></td><td>["11/1","12/1","23/1"]</td><td>11:12:23 UTC</td></tr>
+  <tr><td><code>GPS.GPSDateStamp</code></td><td>2026:05:16</td><td>UTC date</td></tr>
+  <tr><td><code>GPS.GPSSpeed</code></td><td>31607/39972</td><td>≈ 0.79 km/h (effectively stationary)</td></tr>
+  <tr><td><code>GPS.GPSImgDirection</code></td><td>413963/1425</td><td>≈ 290.5° true (WNW)</td></tr>
+  <tr><td><code>GPS.UndefinedTag:0x001F</code></td><td>51103/8543</td><td>≈ 5.98 m horizontal positioning error (HDOP equivalent)</td></tr>
+</table></div>
+<div class="callout info"><strong>Note:</strong> GPS rational values (DMS fractions) are stored as-is from EXIF. To convert latitude to decimal degrees: <code>51 + 33/60 + 54.12/3600 ≈ 51.5650°</code>. Longitude: <code>0 + 38/60 + 11.00/3600 ≈ 0.6364°E</code>.</div>
 </section>
 
 <!-- ─── PARTIES ─── -->
