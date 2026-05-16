@@ -236,6 +236,55 @@ function gd_orient(GdImage $img, int $orientation): GdImage
 }
 
 /**
+ * Extract all readable metadata from an image file before it is processed
+ * and stripped. Returns a flat/nested array safe for json_encode().
+ *
+ * Uses Imagick when available (captures EXIF, IPTC, XMP as text properties).
+ * Falls back to exif_read_data() for JPEGs on GD-only servers.
+ */
+function extract_image_metadata(string $src, string $ext): array
+{
+    $meta = [];
+
+    if (extension_loaded('imagick')) {
+        try {
+            $img   = new Imagick($src);
+            $props = $img->getImageProperties();
+            foreach ($props as $k => $v) {
+                if ($v !== '' && $v !== null) {
+                    $meta[$k] = $v;
+                }
+            }
+            $meta['_width']  = $img->getImageWidth();
+            $meta['_height'] = $img->getImageHeight();
+            $meta['_format'] = $img->getImageFormat();
+            $img->clear();
+        } catch (ImagickException $e) {
+            error_log('extract_image_metadata: ' . $e->getMessage());
+        }
+        return $meta;
+    }
+
+    // GD fallback — JPEG only
+    if ($ext === 'jpg' && function_exists('exif_read_data')) {
+        $raw = @exif_read_data($src, 'ANY_TAG', true);
+        if (is_array($raw)) {
+            foreach ($raw as $section => $fields) {
+                if (!is_array($fields) || $section === 'THUMBNAIL') continue;
+                foreach ($fields as $key => $val) {
+                    if (is_string($val)) {
+                        if (!mb_check_encoding($val, 'UTF-8') || strlen($val) > 1024) continue;
+                    }
+                    $meta[$section . '.' . $key] = $val;
+                }
+            }
+        }
+    }
+
+    return $meta;
+}
+
+/**
  * Determine the correct file extension for a processed file.
  * HEIC becomes jpg (converted during processing).
  */

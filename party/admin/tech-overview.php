@@ -334,6 +334,7 @@ header('X-Frame-Options: DENY');
   <tr><td><code>ip_hash</code></td><td>VARCHAR(64)</td><td>SHA256(IP + IP_SALT) for rate-limiting</td></tr>
   <tr><td><code>ip_display</code></td><td>VARCHAR(50)</td><td>Masked: *.2.3.4 for IPv4; first 4 groups for IPv6</td></tr>
   <tr><td><code>uploaded_by</code></td><td>VARCHAR(100) NULL</td><td>Optional guest name; stripped of control chars and HTML</td></tr>
+  <tr><td><code>exif_data</code></td><td>JSON NULL</td><td>Full image metadata captured before stripping; NULL when <code>CAPTURE_EXIF_DATA</code> is false or file has no metadata. Imagick captures EXIF/IPTC/XMP + dimensions; GD captures EXIF sections for JPEG only.</td></tr>
   <tr><td><code>cloudinary_public_id</code></td><td>VARCHAR NULL</td><td>Set when image is pushed to Cloudinary on approval</td></tr>
   <tr><td><code>upload_timestamp</code></td><td>DATETIME DEFAULT NOW()</td><td></td></tr>
   <tr><td><code>approved_at</code></td><td>DATETIME NULL</td><td></td></tr>
@@ -392,9 +393,10 @@ header('X-Frame-Options: DENY');
 <span class="kw">define</span>(<span class="str">'RATE_LIMIT_WINDOW_HOURS'</span>, <span class="val">24</span>);
 
 <span class="cmt">// Image processing</span>
-<span class="kw">define</span>(<span class="str">'ENABLE_RESIZE'</span>,  <span class="val">true</span>);
-<span class="kw">define</span>(<span class="str">'MAX_DISPLAY_PX'</span>, <span class="val">3840</span>);  <span class="cmt">// longest edge (4K)</span>
-<span class="kw">define</span>(<span class="str">'THUMB_SIZE'</span>,      <span class="val">400</span>);   <span class="cmt">// square centre-crop</span>
+<span class="kw">define</span>(<span class="str">'ENABLE_RESIZE'</span>,     <span class="val">true</span>);
+<span class="kw">define</span>(<span class="str">'MAX_DISPLAY_PX'</span>,    <span class="val">3840</span>);   <span class="cmt">// longest edge (4K)</span>
+<span class="kw">define</span>(<span class="str">'THUMB_SIZE'</span>,         <span class="val">400</span>);    <span class="cmt">// square centre-crop</span>
+<span class="kw">define</span>(<span class="str">'CAPTURE_EXIF_DATA'</span>, <span class="val">true</span>);   <span class="cmt">// store metadata in photos.exif_data before stripping</span>
 
 <span class="cmt">// Session</span>
 <span class="kw">define</span>(<span class="str">'SESSION_LIFETIME_MINUTES'</span>, <span class="val">120</span>);
@@ -474,7 +476,8 @@ header('X-Frame-Options: DENY');
   <li><strong>Magic-byte validation</strong> — file headers checked against JPEG (FF D8 FF), PNG (8-byte signature), WebP (RIFF/WEBP), HEIC (ftyp) — MIME type from the browser is ignored</li>
   <li><strong>UUID filenames</strong> — <code>bin2hex(random_bytes(16))</code>; no user-supplied names ever used on disk</li>
   <li><strong>Quarantine first</strong> — files land in a non-public directory; only moved to gallery on approval</li>
-  <li><strong>EXIF stripping</strong> — Imagick strips all metadata on processing; GD re-encodes (inherently strips)</li>
+  <li><strong>EXIF capture</strong> — when <code>CAPTURE_EXIF_DATA = true</code>, all metadata is read from the quarantine file and stored as JSON in <code>photos.exif_data</code> before processing begins</li>
+  <li><strong>EXIF stripping</strong> — Imagick strips all metadata on processing; GD re-encodes (inherently strips). Stripping happens regardless of <code>CAPTURE_EXIF_DATA</code>.</li>
   <li><strong>Rate limiting</strong> — 20 uploads per IP per party per 24-hour rolling window (hashed IP)</li>
 </ul>
 
@@ -591,6 +594,7 @@ removed  ──purge_all──→ [all removed photos deleted]</code></pre>
 <h3>Processing Pipeline (Imagick)</h3>
 <ol>
   <li>Flatten animated GIF / HEIC to first frame</li>
+  <li><strong>Extract metadata</strong> — if <code>CAPTURE_EXIF_DATA = true</code>, <code>extract_image_metadata()</code> reads all EXIF/IPTC/XMP properties via <code>getImageProperties()</code> and stores them in <code>photos.exif_data</code> as JSON (this happens in upload.php before <code>process_image()</code> is called)</li>
   <li>Auto-orient from EXIF data</li>
   <li>Strip all metadata (<code>stripImage()</code>)</li>
   <li>Resize: longest edge capped at <code>MAX_DISPLAY_PX</code> (3840px), aspect preserved</li>
@@ -793,7 +797,7 @@ removed  ──purge_all──→ [all removed photos deleted]</code></pre>
 <h3>Photo CRUD</h3>
 <div class="tbl-wrap"><table>
   <tr><th>Function</th><th>Returns</th></tr>
-  <tr><td><code>db_insert_photo(party_id, uuid, ext, ip_hash, ip_display, uploaded_by)</code></td><td>void</td></tr>
+  <tr><td><code>db_insert_photo(party_id, uuid, ext, ip_hash, ip_display, uploaded_by, exif_data=null)</code></td><td>void</td></tr>
   <tr><td><code>db_get_photos(status, party_id)</code></td><td>array</td></tr>
   <tr><td><code>db_get_photo_by_uuid(uuid, party_id)</code></td><td>array|false</td></tr>
   <tr><td><code>db_set_photo_cloudinary_id(uuid, party_id, public_id)</code></td><td>void</td></tr>

@@ -70,11 +70,12 @@ function db_insert_photo(
     string $ext,
     string $ip_hash,
     string $ip_display,
-    string $uploaded_by
+    string $uploaded_by,
+    ?array $exif_data = null
 ): void {
     $sql = 'INSERT INTO photos
-              (party_id, uuid, original_extension, ip_hash, ip_display, uploaded_by)
-            VALUES (:party_id, :uuid, :ext, :ip_hash, :ip_display, :uploaded_by)';
+              (party_id, uuid, original_extension, ip_hash, ip_display, uploaded_by, exif_data)
+            VALUES (:party_id, :uuid, :ext, :ip_hash, :ip_display, :uploaded_by, :exif_data)';
     $st = db_pdo()->prepare($sql);
     $st->execute([
         ':party_id'    => $party_id,
@@ -83,6 +84,7 @@ function db_insert_photo(
         ':ip_hash'     => $ip_hash,
         ':ip_display'  => $ip_display,
         ':uploaded_by' => $uploaded_by !== '' ? $uploaded_by : null,
+        ':exif_data'   => $exif_data !== null ? json_encode($exif_data, JSON_UNESCAPED_UNICODE) : null,
     ]);
 }
 

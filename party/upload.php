@@ -153,8 +153,14 @@ $upload_source = in_array($_POST['upload_source'] ?? '', ['camera', 'library', '
     ? $_POST['upload_source']
     : 'unknown';
 
+// ── Extract metadata before processing strips it ───────────
+$exif_data = null;
+if (defined('CAPTURE_EXIF_DATA') && CAPTURE_EXIF_DATA) {
+    $exif_data = extract_image_metadata($quarantine_path, $detected_ext) ?: null;
+}
+
 // ── Record in database ──────────────────────────────────────
-db_insert_photo($party_id, $uuid, $detected_ext, $ip_hash, $ip_disp, $uploaded_by);
+db_insert_photo($party_id, $uuid, $detected_ext, $ip_hash, $ip_disp, $uploaded_by, $exif_data);
 db_log_upload_attempt($party_id, $ip_hash);
 
 // ── Optional email notification ─────────────────────────────
