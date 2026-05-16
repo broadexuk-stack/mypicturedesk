@@ -18,7 +18,7 @@ $done  = false;
 $user = ($token !== '') ? mpd_get_user_by_token($token) : false;
 
 if ($token === '' || $user === false) {
-    $error = 'This link is invalid or has expired. Please ask your administrator to resend an invitation.';
+    $error = 'This link is invalid or has expired (links are valid for 7 days). Please ask your administrator to resend the invitation email.';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user !== false && $error === '') {

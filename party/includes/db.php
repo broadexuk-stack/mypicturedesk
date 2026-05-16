@@ -250,7 +250,7 @@ function mpd_get_user_by_token(string $token): array|false {
 
 function mpd_create_user(string $email, string $role = 'organizer'): int {
     $token   = bin2hex(random_bytes(32)); // 64 hex chars
-    $expires = date('Y-m-d H:i:s', strtotime('+48 hours'));
+    $expires = date('Y-m-d H:i:s', strtotime('+7 days'));
     $sql = 'INSERT INTO mpd_users (email, role, first_login_token, token_expires_at)
             VALUES (:email, :role, :token, :expires)';
     $st = db_pdo()->prepare($sql);
@@ -272,7 +272,7 @@ function mpd_set_user_password(int $id, string $password_hash): void {
 
 function mpd_set_user_token(int $id): string {
     $token   = bin2hex(random_bytes(32));
-    $expires = date('Y-m-d H:i:s', strtotime('+48 hours'));
+    $expires = date('Y-m-d H:i:s', strtotime('+7 days'));
     $st = db_pdo()->prepare(
         'UPDATE mpd_users
          SET first_login_token = :token, token_expires_at = :expires

@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                               . '<p style="color:#f5a623;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 10px;">&#9888; Action Required &mdash; Set Your Password</p>'
                               . '<p style="color:#f0ebff;font-family:Arial,sans-serif;font-size:14px;margin:0 0 16px;">Before you can log in to the admin panel you\'ll need to create a password for your account. Use the button below to get started.</p>'
                               . "<a href=\"$inv_link\" style=\"display:inline-block;background:#f5a623;color:#1a1035;font-family:Arial,sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:11px 26px;border-radius:8px;\">Set My Password &rarr;</a>"
-                              . '<p style="color:#9c7fff;font-family:Arial,sans-serif;font-size:11px;margin:12px 0 0;">This link expires in 48&nbsp;hours.</p>'
+                              . '<p style="color:#9c7fff;font-family:Arial,sans-serif;font-size:11px;margin:12px 0 0;">This link expires in 7&nbsp;days.</p>'
                               . '</td></tr></table>';
                         }
                         $body = mpd_render_email('email_welcome_body', [
@@ -213,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                           . '<p style="color:#f5a623;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 10px;">&#9888; Action Required &mdash; Set Your Password</p>'
                           . '<p style="color:#f0ebff;font-family:Arial,sans-serif;font-size:14px;margin:0 0 16px;">Before you can log in to the admin panel you\'ll need to create a password for your account. Use the button below to get started.</p>'
                           . "<a href=\"$inv_link\" style=\"display:inline-block;background:#f5a623;color:#1a1035;font-family:Arial,sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:11px 26px;border-radius:8px;\">Set My Password &rarr;</a>"
-                          . '<p style="color:#9c7fff;font-family:Arial,sans-serif;font-size:11px;margin:12px 0 0;">This link expires in 48&nbsp;hours.</p>'
+                          . '<p style="color:#9c7fff;font-family:Arial,sans-serif;font-size:11px;margin:12px 0 0;">This link expires in 7&nbsp;days.</p>'
                           . '</td></tr></table>';
                     }
                     $body = mpd_render_email('email_welcome_body', [
