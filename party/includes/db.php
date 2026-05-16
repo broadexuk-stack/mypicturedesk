@@ -568,9 +568,24 @@ function mpd_send_email(string $to, string $subject, string $body_html): bool {
         $headers  = "MIME-Version: 1.0\r\n";
         $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
         if ($f) $headers .= "From: $fromName <$f>\r\n";
-        return mail($to, $subject, $body_html, $headers);
+        $sent = mail($to, $subject, $body_html, $headers);
+        if (function_exists('mpd_log')) {
+            mpd_log($sent ? 'email.sent' : 'email.failed', [
+                'email.to'      => $to,
+                'email.subject' => $subject,
+                'email.via'     => 'php_mail',
+            ]);
+        }
+        return $sent;
     }
 
+    if (function_exists('mpd_log')) {
+        mpd_log('email.failed', [
+            'email.to'      => $to,
+            'email.subject' => $subject,
+            'error.message' => 'No mail transport available (PHPMailer not loaded, mail() not available)',
+        ]);
+    }
     return false;
 }
 
