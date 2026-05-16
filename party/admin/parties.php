@@ -388,6 +388,17 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     .modal-actions { display: flex; gap: 12px; justify-content: center; }
     .btn-yes { background: #e67e22; color: #fff; }
     .btn-yes:hover { background: #d35400; }
+
+    /* Delete confirmation modal */
+    .delete-party-name { color: #f87171; font-weight: 700; font-size: 1rem; margin: 6px 0 14px; word-break: break-word; }
+    .delete-slug-label { font-size: 0.8rem; color: #9c7fff; margin: 14px 0 6px; }
+    .delete-slug-code { display: inline-block; background: #160f35; color: #f5a623; font-family: monospace; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.15em; padding: 6px 16px; border-radius: 6px; border: 1px solid #4b35a0; margin-bottom: 10px; }
+    .delete-confirm-input { width: 100%; padding: 10px 14px; border-radius: 8px; border: 2px solid #7a1a1a; background: #1a0808; color: #f0ebff; font-size: 1rem; font-family: monospace; letter-spacing: 0.12em; text-align: center; margin-bottom: 20px; }
+    .delete-confirm-input:focus { outline: none; border-color: #f87171; }
+    .delete-confirm-input.match { border-color: #f87171; background: #2a0a0a; }
+    .btn-delete-final { background: #c0392b; color: #fff; font-size: 0.95rem; }
+    .btn-delete-final:hover:not(:disabled) { background: #e74c3c; }
+    .btn-delete-final:disabled { background: #4a1a1a; color: #7a3a3a; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -514,12 +525,10 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
               </form>
 
               <!-- Delete -->
-              <form class="inline-form" method="post" data-confirm="Delete party '<?= htmlspecialchars(addslashes($pt['party_name'])) ?>'? This cannot be undone.">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                <input type="hidden" name="action"   value="delete_party">
-                <input type="hidden" name="party_id" value="<?= (int)$pt['id'] ?>">
-                <button type="submit" class="btn-sm btn-danger">Delete</button>
-              </form>
+              <button type="button" class="btn-sm btn-danger btn-open-delete"
+                      data-party-id="<?= (int)$pt['id'] ?>"
+                      data-party-name="<?= htmlspecialchars($pt['party_name'], ENT_QUOTES) ?>"
+                      data-party-slug="<?= htmlspecialchars($pt['slug'], ENT_QUOTES) ?>">Delete</button>
             </div>
           </td>
         </tr>
@@ -652,6 +661,31 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
   </div>
 </div>
 
+<!-- ── Hidden delete form (submitted by modal JS) ── -->
+<form id="delete-party-form" method="post">
+  <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+  <input type="hidden" name="action"     value="delete_party">
+  <input type="hidden" name="party_id"   id="delete-party-id-field" value="">
+</form>
+
+<!-- ── Delete party confirmation modal ── -->
+<div class="modal-overlay" id="delete-confirm-overlay">
+  <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
+    <div class="modal-icon">🗑️</div>
+    <h2 id="delete-confirm-title">Delete Party</h2>
+    <p id="delete-confirm-name" class="delete-party-name"></p>
+    <p class="modal-confirm-text">All photos, data and upload directories will be permanently removed. This cannot be undone.</p>
+    <p class="delete-slug-label">Type the Party ID to unlock the delete button:</p>
+    <div><code id="delete-confirm-slug" class="delete-slug-code"></code></div>
+    <input type="text" id="delete-confirm-input" class="delete-confirm-input"
+           placeholder="party id" autocomplete="off" spellcheck="false">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="delete-confirm-cancel">Cancel</button>
+      <button class="btn btn-delete-final" id="delete-confirm-submit" disabled>DELETE</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Auto-approve confirmation modal ── -->
 <div class="modal-overlay" id="aa-confirm-overlay">
   <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="aa-confirm-title">
@@ -763,11 +797,55 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
     });
   });
 
-  document.querySelectorAll('form[data-confirm]').forEach(function (form) {
-    form.addEventListener('submit', function (e) {
-      if (!confirm(form.getAttribute('data-confirm'))) {
-        e.preventDefault();
-      }
+  // ── Delete party modal ───────────────────────────────────────
+  var delOverlay   = document.getElementById('delete-confirm-overlay');
+  var delNameEl    = document.getElementById('delete-confirm-name');
+  var delSlugEl    = document.getElementById('delete-confirm-slug');
+  var delInput     = document.getElementById('delete-confirm-input');
+  var delSubmit    = document.getElementById('delete-confirm-submit');
+  var delIdField   = document.getElementById('delete-party-id-field');
+  var delForm      = document.getElementById('delete-party-form');
+  var delTargetSlug = '';
+
+  function openDeleteModal(id, name, slug) {
+    delTargetSlug      = slug;
+    delIdField.value   = id;
+    delNameEl.textContent = name;
+    delSlugEl.textContent = slug;
+    delInput.value     = '';
+    delSubmit.disabled = true;
+    delOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function() { delInput.focus(); }, 50);
+  }
+
+  function closeDeleteModal() {
+    delOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  delInput.addEventListener('input', function () {
+    var match = delInput.value === delTargetSlug;
+    delSubmit.disabled = !match;
+    delInput.classList.toggle('match', match);
+  });
+
+  delSubmit.addEventListener('click', function () {
+    if (confirm('Are you sure? "' + delNameEl.textContent + '" and all its photos will be permanently deleted.')) {
+      delForm.submit();
+    }
+  });
+
+  document.getElementById('delete-confirm-cancel').addEventListener('click', closeDeleteModal);
+  delOverlay.addEventListener('click', function (e) { if (e.target === delOverlay) closeDeleteModal(); });
+
+  document.querySelectorAll('.btn-open-delete').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      openDeleteModal(
+        btn.getAttribute('data-party-id'),
+        btn.getAttribute('data-party-name'),
+        btn.getAttribute('data-party-slug')
+      );
     });
   });
 
