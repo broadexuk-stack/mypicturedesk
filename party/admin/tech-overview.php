@@ -832,16 +832,22 @@ removed  ──purge_all──→ [all removed photos deleted]</code></pre>
 
 <h3>Event Reference</h3>
 <div class="tbl-wrap"><table>
-  <tr><th>Event</th><th>Key Fields</th></tr>
-  <tr><td><code>user.login</code></td><td>event.outcome (success|failure|locked), user.id, user.role, client.address, http.user_agent</td></tr>
-  <tr><td><code>user.password_reset</code></td><td>target.user_id, email.sent (bool)</td></tr>
-  <tr><td><code>email.sent</code></td><td>email.to, email.subject, email.via (smtp|php_mail)</td></tr>
-  <tr><td><code>email.failed</code></td><td>email.to, email.subject, error.message, smtp.log</td></tr>
-  <tr><td><code>photo.wastebasket_emptied</code></td><td>party.id, photos.count, user.id</td></tr>
-  <tr><td><code>cloudinary.delete</code></td><td>event.outcome, photo.uuid, cloudinary.public_id, trigger</td></tr>
-  <tr><td><code>admin.impersonate.start</code></td><td>admin.user_id, target.user_id, target.party_id</td></tr>
-  <tr><td><code>admin.impersonate.stop</code></td><td>admin.user_id, target.user_id</td></tr>
-  <tr><td><code>page.view</code></td><td>url.full, party.slug, party.active, http.user_agent</td></tr>
+  <tr><th>Event</th><th>Source</th><th>Key Fields</th></tr>
+  <tr><td><code>party.created</code></td><td>parties.php</td><td>party.id, party.name, party.slug, organiser.id, party.auto_approve, party.cloudinary, party.retention_days, admin.id</td></tr>
+  <tr><td><code>party.toggled</code></td><td>parties.php</td><td>party.id, party.name, party.slug, party.active (bool), admin.id</td></tr>
+  <tr><td><code>party.deleted</code></td><td>parties.php</td><td>party.id, party.name, party.slug, party.photo_count (non-rejected at time of delete), organiser.id, admin.id</td></tr>
+  <tr><td><code>user.login</code></td><td>index.php</td><td>event.outcome (success|failure|locked), user.id, user.role, client.address, http.user_agent</td></tr>
+  <tr><td><code>user.password_reset</code></td><td>index.php</td><td>target.user_id, email.sent (bool)</td></tr>
+  <tr><td><code>email.sent</code></td><td>db.php</td><td>email.to, email.subject, email.via (smtp|php_mail)</td></tr>
+  <tr><td><code>email.failed</code></td><td>db.php</td><td>email.to, email.subject, error.message, smtp.log</td></tr>
+  <tr><td><code>photo.upload</code></td><td>upload.php</td><td>party.id, party.slug, file.name, file.size, file.type, upload.source, uploader.name, client.address</td></tr>
+  <tr><td><code>photo.upload.error</code></td><td>upload.php</td><td>error.type, party.id, file.name, file.size, client.address</td></tr>
+  <tr><td><code>photo.auto_approved</code></td><td>upload.php</td><td>photo.uuid, party.id, party.slug, cloudinary.stored, cloudinary.public_id, client.address</td></tr>
+  <tr><td><code>photo.wastebasket_emptied</code></td><td>moderate.php</td><td>party.id, photos.count, user.id</td></tr>
+  <tr><td><code>cloudinary.delete</code></td><td>moderate.php / db.php</td><td>event.outcome, photo.uuid, cloudinary.public_id, trigger</td></tr>
+  <tr><td><code>admin.impersonate.start</code></td><td>impersonate.php</td><td>admin.user_id, target.user_id, target.party_id</td></tr>
+  <tr><td><code>admin.impersonate.stop</code></td><td>impersonate.php</td><td>admin.user_id, target.user_id</td></tr>
+  <tr><td><code>page.view</code></td><td>index.php (guest)</td><td>url.full, party.slug, party.active, http.user_agent</td></tr>
 </table></div>
 
 <div class="callout info"><strong>Note:</strong> <code>logger.php</code> must be included before <code>mpd_log()</code> is called. Not all admin pages include it — check with <code>function_exists('mpd_log')</code> if calling from shared code.</div>

@@ -107,9 +107,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = 'Please select or create an organiser.';
                     $party_modal_open = true;
                 } else {
-                    $cloudinary_on = cloudinary_globally_configured() && !empty($_POST['cloudinary_enabled']);
-                    $auto_approve  = !empty($_POST['auto_approve']);
-                    mpd_create_party(
+                    $cloudinary_on  = cloudinary_globally_configured() && !empty($_POST['cloudinary_enabled']);
+                    $auto_approve   = !empty($_POST['auto_approve']);
+                    $new_party_id   = mpd_create_party(
                         $slug, $name, $org_id, $me,
                         $edt    !== '' ? $edt    : null,
                         $info   !== '' ? $info   : null,
@@ -121,6 +121,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $auto_approve
                     );
                     mpd_ensure_party_dirs($slug);
+                    mpd_log('party.created', [
+                        'party.id'          => $new_party_id,
+                        'party.name'        => $name,
+                        'party.slug'        => $slug,
+                        'organiser.id'      => $org_id,
+                        'party.auto_approve'  => $auto_approve,
+                        'party.cloudinary'    => $cloudinary_on,
+                        'party.retention_days' => $party_ret,
+                        'admin.id'          => $me,
+                    ]);
 
                     $org = mpd_get_user_by_id($org_id);
                     if ($org) {
@@ -162,7 +172,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pid    = (int)($_POST['party_id'] ?? 0);
             $active = (bool)(int)($_POST['active'] ?? 0);
             if ($pid > 0) {
+                $pt = mpd_get_party_by_id($pid);
                 mpd_toggle_party_active($pid, $active);
+                mpd_log('party.toggled', [
+                    'party.id'   => $pid,
+                    'party.name' => $pt['party_name'] ?? '(unknown)',
+                    'party.slug' => $pt['slug']        ?? '(unknown)',
+                    'party.active' => $active,
+                    'admin.id'   => (int)$_SESSION['mpd_user_id'],
+                ]);
                 $success = 'Party status updated.';
             }
         }
@@ -171,8 +189,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'delete_party') {
             $pid = (int)($_POST['party_id'] ?? 0);
             if ($pid > 0) {
-                $pt = mpd_get_party_by_id($pid);
+                $pt          = mpd_get_party_by_id($pid);
+                $photo_count = db_count_all_photos($pid);
                 mpd_delete_party($pid);
+                mpd_log('party.deleted', [
+                    'party.id'          => $pid,
+                    'party.name'        => $pt['party_name']   ?? '(unknown)',
+                    'party.slug'        => $pt['slug']          ?? '(unknown)',
+                    'party.photo_count' => $photo_count,
+                    'organiser.id'      => $pt['organizer_id'] ?? null,
+                    'admin.id'          => (int)$_SESSION['mpd_user_id'],
+                ]);
                 $success = $pt ? "Party '{$pt['party_name']}' deleted." : 'Party deleted.';
             }
         }
