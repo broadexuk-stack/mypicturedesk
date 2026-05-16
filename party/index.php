@@ -104,7 +104,7 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
   </main>
 
 <?php elseif (!$party_found): ?>
-  <!-- ── Party not found ──────────────────────────────────── -->
+  <!-- ── Party code lookup ─────────────────────────────────── -->
   <header class="site-header">
     <div class="header-inner">
       <span class="header-emoji" aria-hidden="true">📸</span>
@@ -115,17 +115,39 @@ $party_info     = $party_ok && !empty($party['party_info']) ? htmlspecialchars($
   <main id="main">
     <section class="camera-section">
       <div id="upload-ui">
-        <div class="result-ui result-error" style="display:block">
-          <div class="result-emoji" aria-hidden="true">🔍</div>
-          <p class="result-text">Party not found</p>
-          <p class="result-sub">
-            This gallery link isn&rsquo;t active.<br>
-            Please scan the QR code again or speak to your event organiser.
-          </p>
+        <div class="result-ui result-lookup">
+          <div class="result-emoji" aria-hidden="true"><?= $slug !== '' ? '🔍' : '🎉' ?></div>
+          <?php if ($slug !== ''): ?>
+            <p class="result-text">Code not recognised</p>
+            <p class="result-sub">Double-check the six-digit code and try again.</p>
+          <?php else: ?>
+            <p class="result-text">Welcome to MyPictureDesk</p>
+            <p class="result-sub">Type in the six-digit code for your party, or scan the QR code with your camera.</p>
+          <?php endif; ?>
+          <form class="code-form" method="get" action="">
+            <input class="code-input" type="text" name="id" id="code-input"
+                   value="<?= htmlspecialchars($slug) ?>"
+                   maxlength="6" autocomplete="off" autocapitalize="none"
+                   spellcheck="false" inputmode="text"
+                   placeholder="ab12cd"
+                   aria-label="Six-digit party code">
+            <button type="submit" class="btn-code-go">Find my party →</button>
+          </form>
         </div>
       </div>
     </section>
   </main>
+  <script nonce="<?= $nonce ?>">
+  (function () {
+    var inp = document.getElementById('code-input');
+    if (!inp) return;
+    inp.addEventListener('input', function () {
+      inp.value = inp.value.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (inp.value.length === 6) inp.form.submit();
+    });
+    inp.focus();
+  }());
+  </script>
 
 <?php else: ?>
   <!-- ── Header ─────────────────────────────────────────────── -->

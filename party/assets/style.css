@@ -729,3 +729,48 @@ a:hover { color: var(--clr-gold-dark); }
 .timer-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.45); font-size:6rem; font-weight:900; color:#fff; font-family:'Nunito',sans-serif; pointer-events:none; }
 .viewfinder-actions { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:16px; max-width:400px; margin-left:auto; margin-right:auto; }
 .viewfinder-actions .btn { flex:1; min-width:90px; }
+
+/* ── Party code lookup ──────────────────────────────────────── */
+.result-lookup {
+  background: linear-gradient(135deg, #1e1248, #120b30);
+  border: 2px solid #4b35a0;
+}
+.code-form {
+  width: 100%;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.code-input {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--clr-surface-2);
+  background: var(--clr-bg);
+  color: var(--clr-text);
+  font-size: 2rem;
+  font-family: inherit;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 0.25em;
+}
+.code-input:focus { outline: none; border-color: var(--clr-gold); }
+.code-input::placeholder { color: #6b5ca5; font-size: 1.1rem; font-weight: 400; letter-spacing: 0.1em; }
+.btn-code-go {
+  width: 100%;
+  padding: 16px;
+  background: var(--clr-gold);
+  color: #1a1035;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1.1rem;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+  min-height: 56px;
+  touch-action: manipulation;
+  transition: transform var(--transition), background var(--transition);
+}
+.btn-code-go:hover { background: var(--clr-gold-dark); }
+.btn-code-go:active { transform: scale(0.96); }
