@@ -714,15 +714,16 @@ HTML,
 <style>
   @page { size: 6in 4in; margin: 4mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; width: 6in; height: 4in; overflow: hidden; }
-  .layout { display: flex; align-items: center; height: 100%; gap: 6mm; padding: 2mm; }
-  .qr-col { flex: 0 0 72mm; }
-  .qr-col svg { width: 72mm; height: 72mm; display: block; }
-  .text-col { flex: 1; text-align: left; }
-  h1 { font-size: 16pt; font-weight: 900; margin-bottom: 3mm; line-height: 1.2; }
-  .party-code { font-size: 11pt; font-weight: bold; margin-bottom: 4mm; }
-  .instruction { font-size: 9pt; margin-bottom: 4mm; line-height: 1.4; }
-  .guest-url { font-size: 7pt; color: #333; word-break: break-all; border-top: 0.5pt solid #ccc; padding-top: 2mm; }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; }
+  .layout { display: flex; align-items: center; height: 100%; gap: 5mm; padding: 1mm; overflow: hidden; }
+  .qr-col { flex: 0 0 68mm; }
+  .qr-col svg { width: 68mm; height: 68mm; display: block; }
+  .text-col { flex: 1; text-align: left; overflow: hidden; }
+  h1 { font-size: 15pt; font-weight: 900; margin-bottom: 2mm; line-height: 1.2; }
+  .party-code { font-size: 10pt; font-weight: bold; margin-bottom: 3mm; line-height: 1.4; }
+  .instruction { font-size: 8.5pt; margin-bottom: 3mm; line-height: 1.4; color: #333; }
+  .guest-url { font-size: 6.5pt; color: #666; word-break: break-all; border-top: 0.5pt solid #ccc; padding-top: 2mm; }
 </style>
 </head><body>
 <div class="layout">
