@@ -558,14 +558,48 @@ function mpd_send_email(string $to, string $subject, string $body_html): bool {
 function mpd_default_email(string $key): string {
     return match ($key) {
         'email_welcome_body' =>
-            "{{setpassword_block}}"
-          . "<p>Hi,</p>\n"
-          . "<p>Your party gallery has been set up on MyPictureDesk.</p>\n"
-          . "<ul>\n"
-          . "<li><strong>Party name:</strong> {{party_name}}</li>\n"
-          . "<li><strong>Guest URL:</strong> <a href=\"{{guest_url}}\">{{guest_url}}</a></li>\n"
-          . "<li><strong>Admin panel:</strong> <a href=\"{{admin_url}}\">Log in to moderate photos</a></li>\n"
-          . "</ul>",
+            '<div style="background:#1a1035;padding:40px 20px;margin:0;">'
+          . '<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">'
+          . '<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">'
+
+          . '<tr><td align="center" style="padding-bottom:24px;">'
+          . '<span style="color:#f5a623;font-family:Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">MyPictureDesk</span>'
+          . '</td></tr>'
+
+          . '<tr><td style="background:#2d1b69;border-radius:16px;padding:36px 32px;">'
+
+          . '<h1 style="color:#f0ebff;font-family:Arial,sans-serif;font-size:22px;font-weight:900;margin:0 0 6px;">&#127881; Your party gallery is ready!</h1>'
+          . '<p style="color:#9c7fff;font-family:Arial,sans-serif;font-size:14px;margin:0 0 24px;">Your party has been set up on MyPictureDesk. Here are your details.</p>'
+
+          . '{{setpassword_block}}'
+
+          . '<p style="color:#c9b8ff;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 5px;">Party Name</p>'
+          . '<div style="background:#160f35;border:2px solid #4b35a0;border-radius:8px;padding:10px 14px;margin-bottom:20px;">'
+          . '<span style="color:#f0ebff;font-family:Arial,sans-serif;font-size:15px;">{{party_name}}</span>'
+          . '</div>'
+
+          . '<p style="color:#c9b8ff;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 5px;">Guest URL</p>'
+          . '<div style="background:#160f35;border:2px solid #4b35a0;border-radius:8px;padding:10px 14px;margin-bottom:5px;">'
+          . '<a href="{{guest_url}}" style="color:#9c7fff;font-family:Arial,sans-serif;font-size:14px;word-break:break-all;text-decoration:none;">{{guest_url}}</a>'
+          . '</div>'
+          . '<p style="color:#6b5ca5;font-family:Arial,sans-serif;font-size:12px;margin:4px 0 20px;">Share this link with your guests so they can upload photos.</p>'
+
+          . '<p style="color:#c9b8ff;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 5px;">Admin Panel</p>'
+          . '<div style="background:#160f35;border:2px solid #4b35a0;border-radius:8px;padding:10px 14px;margin-bottom:28px;">'
+          . '<a href="{{admin_url}}" style="color:#9c7fff;font-family:Arial,sans-serif;font-size:14px;word-break:break-all;text-decoration:none;">{{admin_url}}</a>'
+          . '</div>'
+
+          . '<div style="text-align:center;">'
+          . '<a href="{{admin_url}}" style="display:inline-block;background:#f5a623;color:#1a1035;font-family:Arial,sans-serif;font-size:16px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:10px;">Log in to Admin Panel</a>'
+          . '</div>'
+
+          . '</td></tr>'
+
+          . '<tr><td align="center" style="padding-top:20px;">'
+          . '<p style="color:#4a3580;font-family:Arial,sans-serif;font-size:12px;margin:0;">MyPictureDesk &mdash; Party Photo Sharing</p>'
+          . '</td></tr>'
+
+          . '</table></td></tr></table></div>',
         'email_notify_body' =>
             "<p>A new photo has been uploaded to <strong>{{party_name}}</strong> and is awaiting approval.</p>\n"
           . "<ul>\n"
