@@ -615,7 +615,6 @@ function mpd_default_print_template(string $key): string {
 <p class="party-code">Your PartyPix Code is: <strong>{{slug}}</strong></p>
 <p class="instruction">Scan the code above to upload your photos to the gallery.</p>
 <p class="guest-url">{{guest_url}}</p>
-<script>window.onload=function(){window.print();}</script>
 </body></html>
 HTML,
         'print_label_body' => <<<'HTML'
@@ -646,7 +645,6 @@ HTML,
     <p class="guest-url">{{guest_url}}</p>
   </div>
 </div>
-<script>window.onload=function(){window.print();}</script>
 </body></html>
 HTML,
         default => '',

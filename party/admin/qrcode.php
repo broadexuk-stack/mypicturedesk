@@ -211,19 +211,17 @@ $print_label_tpl = mpd_render_print_template('print_label_body', [
   }
 
   // ── Print helpers ─────────────────────────────────────────
-  function printA4() {
+  function openPrint(tpl) {
     const w = window.open('', '_blank');
     if (!w) return;
-    w.document.write(PRINT_A4_TPL.replace('{{qr_svg}}', svgString));
+    const html = tpl.replace('{{qr_svg}}', svgString);
+    // Inject print trigger — kept out of the editable template to avoid server WAF blocks on <script> in POST data
+    w.document.write(html.replace('</body>', '<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body>'));
     w.document.close();
   }
 
-  function printLabel() {
-    const w = window.open('', '_blank');
-    if (!w) return;
-    w.document.write(PRINT_LABEL_TPL.replace('{{qr_svg}}', svgString));
-    w.document.close();
-  }
+  function printA4()    { openPrint(PRINT_A4_TPL);    }
+  function printLabel() { openPrint(PRINT_LABEL_TPL); }
 
   // ── Download ──────────────────────────────────────────────
   dlBtn.addEventListener('click', function () {

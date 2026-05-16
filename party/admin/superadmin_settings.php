@@ -292,8 +292,8 @@ $s = mpd_get_all_settings();
   <!-- ── Print templates ── -->
   <h2>Print Templates</h2>
   <p style="font-size:.82rem;color:#6b5ca5;margin-bottom:12px;">
-    Full HTML documents written into a popup window and printed immediately. Edit the CSS and layout freely.
-    Leave blank to restore the default. <strong style="color:#c9b8ff;">{{qr_svg}}</strong> is replaced by JS at print time and must remain in the template.
+    Full HTML documents displayed in a print popup. Edit the CSS and layout freely.
+    Leave blank to restore the default. After saving, <strong style="color:#c9b8ff;">reload the QR code page</strong> before printing to pick up changes.
   </p>
 
   <div style="background:#160f35;border:1px solid #2d1b69;border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:0.78rem;color:#9c7fff;line-height:1.8;">
@@ -301,7 +301,8 @@ $s = mpd_get_all_settings();
     <code>{{party_name}}</code> — Party name (HTML-escaped) &nbsp;|&nbsp;
     <code>{{slug}}</code> — Six-character party code &nbsp;|&nbsp;
     <code>{{guest_url}}</code> — Full guest URL &nbsp;|&nbsp;
-    <code>{{qr_svg}}</code> — Vector SVG QR code <em style="color:#6b5ca5;">(injected by JS — must be present)</em>
+    <code>{{qr_svg}}</code> — Vector SVG QR code <em style="color:#6b5ca5;">(must be present — replaced by JS at print time)</em><br>
+    <em style="color:#6b5ca5;">No <code>&lt;script&gt;</code> tag needed — the print dialogue is triggered automatically.</em>
   </div>
 
   <form method="post" autocomplete="off">
