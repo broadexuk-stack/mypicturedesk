@@ -378,11 +378,12 @@ function mpd_create_party(
     int     $retention_days      = 30,
     ?string $organiser_name      = null,
     bool    $timer_camera        = false,
-    bool    $cloudinary_enabled  = false
+    bool    $cloudinary_enabled  = false,
+    bool    $auto_approve        = false
 ): int {
     $sql = 'INSERT INTO mpd_parties
-              (slug, party_name, organiser_name, organizer_id, created_by, event_datetime, party_info, notify_email, retention_days, timer_camera_enabled, cloudinary_enabled)
-            VALUES (:slug, :name, :oname, :oid, :cby, :edt, :info, :notify, :ret, :timer, :cloud)';
+              (slug, party_name, organiser_name, organizer_id, created_by, event_datetime, party_info, notify_email, retention_days, timer_camera_enabled, cloudinary_enabled, auto_approve)
+            VALUES (:slug, :name, :oname, :oid, :cby, :edt, :info, :notify, :ret, :timer, :cloud, :aa)';
     $st = db_pdo()->prepare($sql);
     $st->execute([
         ':slug'   => $slug,
@@ -396,12 +397,13 @@ function mpd_create_party(
         ':ret'    => $retention_days,
         ':timer'  => (int)$timer_camera,
         ':cloud'  => (int)$cloudinary_enabled,
+        ':aa'     => (int)$auto_approve,
     ]);
     return (int)db_pdo()->lastInsertId();
 }
 
 function mpd_update_party(int $id, array $fields): void {
-    $allowed = ['party_name', 'organiser_name', 'event_datetime', 'party_info', 'notify_email', 'colour_theme', 'retention_days', 'timer_camera_enabled', 'cloudinary_enabled'];
+    $allowed = ['party_name', 'organiser_name', 'event_datetime', 'party_info', 'notify_email', 'colour_theme', 'retention_days', 'timer_camera_enabled', 'cloudinary_enabled', 'auto_approve'];
     $sets    = [];
     $params  = [':id' => $id];
     foreach ($fields as $col => $val) {

@@ -107,6 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $party_modal_open = true;
                 } else {
                     $cloudinary_on = cloudinary_globally_configured() && !empty($_POST['cloudinary_enabled']);
+                    $auto_approve  = !empty($_POST['auto_approve']);
                     mpd_create_party(
                         $slug, $name, $org_id, $me,
                         $edt    !== '' ? $edt    : null,
@@ -115,7 +116,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $party_ret,
                         $oname  !== '' ? $oname  : null,
                         $timer_camera,
-                        $cloudinary_on
+                        $cloudinary_on,
+                        $auto_approve
                     );
                     mpd_ensure_party_dirs($slug);
 
@@ -172,6 +174,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($pid > 0 && cloudinary_globally_configured()) {
                 $enabled = (bool)(int)($_POST['cloudinary_enabled'] ?? 0);
                 mpd_update_party($pid, ['cloudinary_enabled' => $enabled ? 1 : 0]);
+            }
+        }
+
+        // ─ Toggle auto-approve ─
+        if ($action === 'toggle_auto_approve') {
+            $pid = (int)($_POST['party_id'] ?? 0);
+            if ($pid > 0) {
+                $enabled = (bool)(int)($_POST['auto_approve'] ?? 0);
+                mpd_update_party($pid, ['auto_approve' => $enabled ? 1 : 0]);
             }
         }
 
@@ -338,6 +349,7 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
           <th>Photos</th>
           <th>Status</th>
           <?php if (cloudinary_globally_configured()): ?><th title="Cloudinary CDN storage">☁️</th><?php endif; ?>
+          <th title="Auto-approve uploads">⚡</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -367,9 +379,9 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
           <?php if (cloudinary_globally_configured()): ?>
           <td style="text-align:center;">
             <form class="inline-form cloud-toggle-form" method="post">
-              <input type="hidden" name="csrf_token"        value="<?= htmlspecialchars($csrf) ?>">
-              <input type="hidden" name="action"            value="toggle_cloudinary">
-              <input type="hidden" name="party_id"          value="<?= (int)$pt['id'] ?>">
+              <input type="hidden" name="csrf_token"         value="<?= htmlspecialchars($csrf) ?>">
+              <input type="hidden" name="action"             value="toggle_cloudinary">
+              <input type="hidden" name="party_id"           value="<?= (int)$pt['id'] ?>">
               <input type="hidden" name="cloudinary_enabled" value="0">
               <input type="checkbox" name="cloudinary_enabled" value="1"
                      title="Store approved photos on Cloudinary"
@@ -377,6 +389,17 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
             </form>
           </td>
           <?php endif; ?>
+          <td style="text-align:center;">
+            <form class="inline-form cloud-toggle-form" method="post">
+              <input type="hidden" name="csrf_token"  value="<?= htmlspecialchars($csrf) ?>">
+              <input type="hidden" name="action"      value="toggle_auto_approve">
+              <input type="hidden" name="party_id"    value="<?= (int)$pt['id'] ?>">
+              <input type="hidden" name="auto_approve" value="0">
+              <input type="checkbox" name="auto_approve" value="1"
+                     title="Auto-approve uploads — photos go live immediately without moderation"
+                     <?= !empty($pt['auto_approve']) ? 'checked' : '' ?>>
+            </form>
+          </td>
           <td>
             <div class="action-cell">
               <!-- Toggle active -->
@@ -524,6 +547,15 @@ $organisers = array_filter(mpd_get_all_users(), fn($u) => $u['role'] === 'organi
         <p class="hint">Approved photos are uploaded to Cloudinary and served via their global CDN. Local copies are removed after upload.</p>
       </div>
       <?php endif; ?>
+
+      <div class="form-row">
+        <label>Auto-Approve Uploads</label>
+        <label class="checkbox-row">
+          <input type="checkbox" name="auto_approve" value="1" <?= !empty($_POST['auto_approve']) ? 'checked' : '' ?>>
+          <span>⚡ Photos go live immediately without moderation</span>
+        </label>
+        <p class="hint">Only enable for trusted, controlled audiences. Uploaded photos skip the approval queue and appear in the gallery instantly.</p>
+      </div>
 
       <div class="form-row">
         <label>Party ID</label>

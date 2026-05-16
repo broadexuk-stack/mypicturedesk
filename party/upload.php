@@ -10,6 +10,7 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/image.php';
 require_once __DIR__ . '/includes/logger.php';
+require_once __DIR__ . '/includes/cloudinary.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -159,7 +160,11 @@ db_log_upload_attempt($party_id, $ip_hash);
 // ── Optional email notification ─────────────────────────────
 // Only notify when this photo is the first in an empty pending queue,
 // so the organiser gets one alert per batch rather than one per upload.
+// Skip entirely for auto-approve parties — nothing is pending.
 $notify = $party['notify_email'] ?? '';
+if (!empty($party['auto_approve'])) {
+    $notify = '';
+}
 if ($notify !== '' && db_count_pending($party_id) === 1) {
     $pname   = $party['party_name'];
     $subject = '[' . $pname . '] New photo awaiting approval';
@@ -184,6 +189,59 @@ mpd_log('photo.upload', [
     'uploader.name'  => $uploaded_by ?: null,
     'client.address' => $ip_disp,
 ]);
+
+// ── Auto-approve ────────────────────────────────────────────
+if (!empty($party['auto_approve'])) {
+    $disk_ext = output_extension($detected_ext);
+    $gPath    = $dirs['gallery']        . '/' . $uuid . '.' . $disk_ext;
+    $tPath    = $dirs['gallery_thumbs'] . '/' . $uuid . '.' . $disk_ext;
+
+    $processed = process_image($quarantine_path, $gPath, $tPath, $detected_ext);
+    if (!$processed) {
+        error_log("upload.php: process_image failed for $uuid (auto-approve) — copying raw");
+        @copy($quarantine_path, $gPath);
+        @copy($quarantine_path, $tPath);
+    }
+
+    @chmod($gPath, 0644);
+    @chmod($tPath, 0644);
+    @unlink($quarantine_path);
+    @unlink($qThumbPath);
+    if ($disk_ext !== 'jpg') {
+        @unlink($dirs['quarantine_thumbs'] . '/' . $uuid . '.jpg');
+    }
+
+    $cloudinary_stored_id = null;
+    if (!empty($party['cloudinary_enabled']) && cloudinary_globally_configured()) {
+        $cld_id = cloudinary_public_id($party['slug'], $uuid);
+        $result = cloudinary_upload($gPath, $cld_id);
+        if ($result !== false) {
+            $cloudinary_stored_id = $result['public_id'] ?? $cld_id;
+            try {
+                db_set_photo_cloudinary_id($uuid, $party_id, $cloudinary_stored_id);
+                @unlink($gPath);
+                @unlink($tPath);
+            } catch (\Throwable $e) {
+                error_log("upload.php: db_set_photo_cloudinary_id failed for $uuid: " . $e->getMessage());
+            }
+        } else {
+            error_log("upload.php: Cloudinary upload failed for $uuid (auto-approve) — keeping local files");
+        }
+    }
+
+    db_set_photo_status($uuid, $party_id, 'approved');
+    mpd_log('photo.auto_approved', [
+        'photo.uuid'           => $uuid,
+        'party.id'             => $party_id,
+        'party.slug'           => $party['slug'],
+        'cloudinary.stored'    => $cloudinary_stored_id !== null,
+        'cloudinary.public_id' => $cloudinary_stored_id,
+        'client.address'       => $ip_disp,
+    ]);
+
+    echo json_encode(['ok' => true, 'message' => 'Photo uploaded — it\'s live in the gallery!']);
+    exit;
+}
 
 // ── Success ─────────────────────────────────────────────────
 echo json_encode(['ok' => true, 'message' => 'Photo received! It will appear once approved.']);
