@@ -16,6 +16,13 @@ declare(strict_types=1);
 //   I. Email helper
 // ============================================================
 
+// Load Composer autoloader (provides PHPMailer). Degrades gracefully
+// if `composer install` has not been run yet.
+(static function () {
+    $autoload = __DIR__ . '/../vendor/autoload.php';
+    if (file_exists($autoload)) require_once $autoload;
+})();
+
 // ── A. PDO connection ────────────────────────────────────────
 
 function db_pdo(): PDO {

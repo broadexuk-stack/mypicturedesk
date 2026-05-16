@@ -29,6 +29,11 @@ party/data/*
 *.zip
 *.tar.gz
 
+# ── Composer ─────────────────────────────────────────────────
+# vendor/ is installed on the server via `composer install`.
+# composer.json and composer.lock are committed; vendor/ is not.
+party/vendor/
+
 # ── OS noise ─────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

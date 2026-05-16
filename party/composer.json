@@ -1,0 +1,10 @@
+{
+    "name": "mypicturedesk/party",
+    "description": "MyPictureDesk party photo sharing platform",
+    "require": {
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
