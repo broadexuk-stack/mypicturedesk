@@ -599,21 +599,26 @@ function mpd_default_print_template(string $key): string {
 <meta charset="UTF-8">
 <title>QR Code – {{party_name}}</title>
 <style>
-  @page { size: A4 portrait; margin: 15mm; }
+  @page { size: A4 portrait; margin: 12mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
   body {
     font-family: Arial, Helvetica, sans-serif;
     color: #000;
     background: #fff;
-    text-align: center;
-    padding: 4mm;
+    display: flex;
+    flex-direction: column;
   }
   .card {
-    width: 100%;
+    flex: 1;
     border: 3pt solid #000;
     border-radius: 8mm;
     padding: 10mm 14mm 8mm;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
   .brand {
     font-size: 8pt;
@@ -644,7 +649,7 @@ function mpd_default_print_template(string $key): string {
     align-items: center;
     gap: 3mm;
     width: 108mm;
-    margin: 0 auto 8mm;
+    margin-bottom: 8mm;
   }
   .divider-line { flex: 1; height: 0.5pt; background: #bbb; }
   .divider-dot  { width: 2mm; height: 2mm; background: #000; border-radius: 50%; flex-shrink: 0; }
@@ -674,10 +679,11 @@ function mpd_default_print_template(string $key): string {
   }
   .footer {
     font-size: 6.5pt;
-    color: #bbb;
+    color: #aaa;
     word-break: break-all;
-    border-top: 0.5pt solid #e0e0e0;
+    border-top: 0.5pt solid #ddd;
     padding-top: 4mm;
+    width: 100%;
   }
 </style>
 </head><body>
