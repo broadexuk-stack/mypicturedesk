@@ -558,14 +558,14 @@ function mpd_send_email(string $to, string $subject, string $body_html): bool {
 function mpd_default_email(string $key): string {
     return match ($key) {
         'email_welcome_body' =>
-            "<p>Hi,</p>\n"
+            "{{setpassword_block}}"
+          . "<p>Hi,</p>\n"
           . "<p>Your party gallery has been set up on MyPictureDesk.</p>\n"
           . "<ul>\n"
           . "<li><strong>Party name:</strong> {{party_name}}</li>\n"
           . "<li><strong>Guest URL:</strong> <a href=\"{{guest_url}}\">{{guest_url}}</a></li>\n"
           . "<li><strong>Admin panel:</strong> <a href=\"{{admin_url}}\">Log in to moderate photos</a></li>\n"
-          . "</ul>\n"
-          . "{{setpassword_block}}",
+          . "</ul>",
         'email_notify_body' =>
             "<p>A new photo has been uploaded to <strong>{{party_name}}</strong> and is awaiting approval.</p>\n"
           . "<ul>\n"

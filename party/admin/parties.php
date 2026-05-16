@@ -129,8 +129,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if (empty($org['password_hash'])) {
                             $inv_token = mpd_set_user_token($org_id);
                             $inv_link  = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($inv_token);
-                            $setpassword_block = "<p>To access the admin panel you'll need to set your password first &mdash; "
-                                               . "<a href=\"$inv_link\">click here to set your password</a> (link valid for 48 hours).</p>";
+                            $setpassword_block =
+                                '<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;"><tr><td style="background:#2a1500;border:2px solid #f5a623;border-radius:10px;padding:18px 20px;">'
+                              . '<p style="color:#f5a623;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 10px;">&#9888; Action Required &mdash; Set Your Password</p>'
+                              . '<p style="color:#f0ebff;font-family:Arial,sans-serif;font-size:14px;margin:0 0 16px;">Before you can log in to the admin panel you\'ll need to create a password for your account. Use the button below to get started.</p>'
+                              . "<a href=\"$inv_link\" style=\"display:inline-block;background:#f5a623;color:#1a1035;font-family:Arial,sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:11px 26px;border-radius:8px;\">Set My Password &rarr;</a>"
+                              . '<p style="color:#9c7fff;font-family:Arial,sans-serif;font-size:11px;margin:12px 0 0;">This link expires in 48&nbsp;hours.</p>'
+                              . '</td></tr></table>';
                         }
                         $body = mpd_render_email('email_welcome_body', [
                             'party_name'        => htmlspecialchars($name),
@@ -203,8 +208,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (empty($org['password_hash'])) {
                         $inv_token = mpd_set_user_token((int)$org['id']);
                         $inv_link  = BASE_URL . '/party/admin/setpassword.php?token=' . urlencode($inv_token);
-                        $setpassword_block = "<p>To access the admin panel you'll need to set your password first &mdash; "
-                                           . "<a href=\"$inv_link\">click here to set your password</a> (link valid for 48 hours).</p>";
+                        $setpassword_block =
+                            '<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;"><tr><td style="background:#2a1500;border:2px solid #f5a623;border-radius:10px;padding:18px 20px;">'
+                          . '<p style="color:#f5a623;font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 10px;">&#9888; Action Required &mdash; Set Your Password</p>'
+                          . '<p style="color:#f0ebff;font-family:Arial,sans-serif;font-size:14px;margin:0 0 16px;">Before you can log in to the admin panel you\'ll need to create a password for your account. Use the button below to get started.</p>'
+                          . "<a href=\"$inv_link\" style=\"display:inline-block;background:#f5a623;color:#1a1035;font-family:Arial,sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:11px 26px;border-radius:8px;\">Set My Password &rarr;</a>"
+                          . '<p style="color:#9c7fff;font-family:Arial,sans-serif;font-size:11px;margin:12px 0 0;">This link expires in 48&nbsp;hours.</p>'
+                          . '</td></tr></table>';
                     }
                     $body = mpd_render_email('email_welcome_body', [
                         'party_name'        => htmlspecialchars($pt['party_name']),
